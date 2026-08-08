@@ -297,6 +297,7 @@
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSAppTransportSecurity = "{}";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "O Jarvis precisa do microfone para ouvir os seus comandos.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "O Jarvis usa o reconhecimento de fala em português do Brasil para exibir a transcrição ao vivo durante os comandos de voz.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -481,6 +482,7 @@
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSAppTransportSecurity = "{}";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "O Jarvis precisa do microfone para ouvir os seus comandos.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "O Jarvis usa o reconhecimento de fala em português do Brasil para exibir a transcrição ao vivo durante os comandos de voz.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",

@@ -50,14 +50,21 @@ final class MicrophoneManager: NSObject, ObservableObject {
 
     /// Permissão separada do Speech framework, só usada pra transcrição ao vivo (exibição).
     func requestSpeechPermission() async -> Bool {
-        await withCheckedContinuation { continuation in
+        guard let usageDescription = Bundle.main.object(
+            forInfoDictionaryKey: "NSSpeechRecognitionUsageDescription"
+        ) as? String,
+              !usageDescription.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            print("[Microphone] NSSpeechRecognitionUsageDescription ausente; transcrição ao vivo desativada")
+            return false
+        }
+        return await withCheckedContinuation { continuation in
             SFSpeechRecognizer.requestAuthorization { status in
                 continuation.resume(returning: status == .authorized)
             }
         }
     }
 
-    func startRecording() {
+    func startRecording(enableLiveTranscription: Bool) {
         guard !isRecording else { return }
         isStopping = false
         liveTranscript = ""
@@ -79,7 +86,9 @@ final class MicrophoneManager: NSObject, ObservableObject {
             audioFile = try AVAudioFile(forWriting: url, settings: outputFormat.settings)
             outputFileURL = url
 
-            startLiveTranscription(format: hwFormat)
+            if enableLiveTranscription {
+                startLiveTranscription(format: hwFormat)
+            }
 
             input.installTap(onBus: 0, bufferSize: 4096, format: nil) { [weak self] buffer, _ in
                 Task { @MainActor [weak self] in
