@@ -133,6 +133,44 @@ final class BackendClientTests: XCTestCase {
         try? FileManager.default.removeItem(at: tmp)
     }
 
+    func testTTSStreamParsing() async throws {
+        let pcm = Data([0x00, 0x00, 0xFF, 0x7F])
+        let ndjson = """
+        {"type":"ready","sample_rate":24000}
+        {"type":"audio","sample_rate":24000,"pcm_s16le":"\(pcm.base64EncodedString())"}
+        {"type":"done","audio_duration_s":0.32,"total_s":0.1,"rtf":0.31}
+
+        """
+        MockURLProtocol.requestHandler = { request in
+            XCTAssertEqual(request.url?.path, "/tts/stream")
+            XCTAssertEqual(request.httpMethod, "POST")
+            let response = HTTPURLResponse(
+                url: request.url!,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "application/x-ndjson"]
+            )!
+            return (response, Data(ndjson.utf8))
+        }
+
+        var receivedPCM: Data?
+        var completed = false
+        for try await event in client.ttsStream(text: "Bom dia") {
+            switch event {
+            case .audio(let rate, let data):
+                XCTAssertEqual(rate, 24_000)
+                receivedPCM = data
+            case .done(let duration, _, _):
+                XCTAssertEqual(duration, 0.32)
+                completed = true
+            case .ready:
+                break
+            }
+        }
+        XCTAssertEqual(receivedPCM, pcm)
+        XCTAssertTrue(completed)
+    }
+
     func testHTTPErrorPropagation() async {
         MockURLProtocol.requestHandler = { request in
             let response = HTTPURLResponse(url: request.url!, statusCode: 500, httpVersion: nil, headerFields: nil)!

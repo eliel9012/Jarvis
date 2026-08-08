@@ -6,8 +6,10 @@ Endpoints:
   POST /stt          (upload wav)
   POST /chat         {messages: [{role, content}]}
   POST /tts          {text, speed, ref_audio?, ref_text?}
+  POST /tts/stream   {text, speed, ref_audio?, ref_text?} -> NDJSON/PCM16
   POST /conversation (upload wav -> STT -> LLM -> TTS)
 """
+import base64
 import json
 import os
 import re
@@ -24,6 +26,7 @@ import soundfile as sf
 import uvicorn
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 CONFIG_PATH = Path(__file__).resolve().parent.parent.parent / "Config" / "config.json"
@@ -43,7 +46,7 @@ SYSTEM_PROMPT = "Você é Jarvis, um assistente pessoal local."
 if SYSTEM_PROMPT_PATH.exists():
     SYSTEM_PROMPT = SYSTEM_PROMPT_PATH.read_text().strip()
 
-app = FastAPI(title="Jarvis Local Backend", version="0.1.3")
+app = FastAPI(title="Jarvis Local Backend", version="0.1.4")
 app.add_middleware(
     CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"]
 )
@@ -51,13 +54,14 @@ app.add_middleware(
 _stt_model = None
 _tts_model = None
 _tts_model_id = None
+_tts_warmed = False
+_tts_warmup_error = None
 
-# STT/LLM/TTS rodam sobre modelos MLX (GPU/Metal) globais e não são thread-safe.
-# /stt, /chat, /tts e /conversation agora rodam em threadpool (endpoints são `def`
-# síncronos, de propósito, pra não travar /health) — sem esse lock, duas requests
-# concorrentes corrompem/embaralham a saída do modelo (visto em produção: 5
-# transcrições da mesma frase saindo intercaladas). /health nunca usa esse lock.
+# Os modelos MLX globais não são thread-safe. STT/LLM e TTS usam locks separados:
+# isso impede duas gerações do mesmo modelo de se misturarem, mas permite aquecer
+# o TTS em segundo plano sem bloquear uma transcrição ou resposta da LLM.
 _pipeline_lock = threading.Lock()
+_tts_lock = threading.Lock()
 
 HTTP_TIMEOUT = httpx.Timeout(600.0, connect=10.0)
 
@@ -75,12 +79,38 @@ def load_stt():
 def load_tts(model_id: str):
     global _tts_model, _tts_model_id
     if _tts_model is None or _tts_model_id != model_id:
-        from mlx_audio.tts.utils import load_model as load_tts_model
-
         print(f"[tts] carregando {model_id} ...")
-        _tts_model = load_tts_model(model_path=model_id)
+        if is_kokoro_tts(model_id):
+            from kokoro_mlx import KokoroTTS
+
+            _tts_model = KokoroTTS.from_pretrained(model_id)
+        else:
+            from mlx_audio.tts.utils import load_model as load_tts_model
+
+            _tts_model = load_tts_model(model_path=model_id)
         _tts_model_id = model_id
     return _tts_model
+
+
+def is_kokoro_tts(model_id: str | None = None) -> bool:
+    return (
+        TTS_CFG.get("provider") == "kokoro_mlx"
+        or "kokoro" in (model_id or TTS_CFG.get("model", "")).lower()
+    )
+
+
+def configured_tts_reference() -> tuple[str | None, str | None]:
+    value = TTS_CFG.get("ref_audio")
+    if not value:
+        return None, TTS_CFG.get("ref_text")
+    path = Path(os.path.expanduser(value))
+    if not path.is_absolute():
+        path = PROJECT_ROOT / path
+    return str(path), TTS_CFG.get("ref_text")
+
+
+def tts_token_budget(text: str) -> int:
+    return min(420, max(180, int(len(text) * 2.2)))
 
 
 def estimate_tokens(text: str) -> int:
@@ -178,7 +208,7 @@ def _generate_tts_chunk(
     # Qwen3-TTS produz cerca de 12,5 tokens de áudio por segundo. O limite
     # dinâmico impede o loop de 1.200 tokens/96 s observado em textos longos.
     # O piso anterior de 100 tokens causava falsos positivos até em "Bom dia!".
-    base_tokens = min(420, max(180, int(len(text) * 2.2)))
+    base_tokens = tts_token_budget(text)
     max_tokens = min(560, int(base_tokens * (1.45 if retry else 1.0)))
     output = out_dir / f"{prefix}.wav"
     generate_audio(
@@ -190,7 +220,7 @@ def _generate_tts_chunk(
         join_audio=True,
         verbose=False,
         max_tokens=max_tokens,
-        temperature=0.55 if retry else 0.65,
+        temperature=TTS_CFG.get("temperature", 0.55),
         speed=speed,
         ref_audio=ref_audio,
         ref_text=ref_text,
@@ -290,9 +320,15 @@ def _join_and_normalize_audio(paths: list[Path], destination: Path) -> float:
 
 
 def run_tts(text: str, model_id: str, speed: float = 1.0, ref_audio=None, ref_text=None) -> dict:
+    if is_kokoro_tts(model_id):
+        return run_kokoro_tts(text, model_id, speed)
+
     from mlx_audio.tts.generate import generate_audio
 
     model = load_tts(model_id)
+    configured_audio, configured_text = configured_tts_reference()
+    ref_audio = ref_audio or configured_audio
+    ref_text = ref_text or configured_text
     removed = cleanup_orphaned_audio()
     if removed:
         print(f"[tts] removidos {removed} WAVs órfãos do cache")
@@ -336,6 +372,235 @@ def run_tts(text: str, model_id: str, speed: float = 1.0, ref_audio=None, ref_te
         "rtf": round(total / duration, 3) if duration else None,
         "chunks": len(chunks),
     }
+
+
+def run_kokoro_tts(text: str, model_id: str, speed: float = 1.0) -> dict:
+    """Compatibilidade com o endpoint WAV; o app usa /tts/stream."""
+    chunks = split_tts_text(text, max_chars=220)
+    if not chunks:
+        raise HTTPException(400, "Texto vazio para TTS")
+    removed = cleanup_orphaned_audio()
+    if removed:
+        print(f"[tts] removidos {removed} WAVs órfãos do cache")
+
+    model = load_tts(model_id)
+    sample_rate = int(TTS_CFG.get("sample_rate", 24_000))
+    started = time.perf_counter()
+    generated = []
+    for chunk in chunks:
+        result = model.generate(
+            chunk,
+            voice=TTS_CFG.get("voice", "pm_santa"),
+            speed=speed,
+            sample_rate=sample_rate,
+            language=TTS_CFG.get("language", "pt-br"),
+        )
+        generated.append(np.asarray(result.audio, dtype=np.float32).reshape(-1))
+    joined = np.concatenate(generated)
+    prefix = f"{time.time_ns()}"
+    final = OUTPUT_DIR / f"{prefix}.wav"
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    sf.write(final, np.clip(joined, -0.95, 0.95), sample_rate, subtype="PCM_16")
+    total = time.perf_counter() - started
+    duration = len(joined) / sample_rate
+    return {
+        "text": text,
+        "audio_path": str(final),
+        "audio_duration_s": round(duration, 2),
+        "total_s": round(total, 3),
+        "rtf": round(total / duration, 3) if duration else None,
+        "chunks": len(chunks),
+    }
+
+
+def _stream_event(payload: dict) -> bytes:
+    return (json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n").encode()
+
+
+def stream_tts_audio(
+    text: str,
+    model_id: str,
+    speed: float = 1.0,
+    ref_audio: str | None = None,
+    ref_text: str | None = None,
+):
+    """Entrega PCM16 mono em NDJSON assim que cada bloco do modelo fica pronto."""
+    if is_kokoro_tts(model_id):
+        yield from stream_kokoro_audio(text, model_id, speed)
+        return
+
+    cleaned = normalize_tts_text(text)
+    configured_audio, configured_text = configured_tts_reference()
+    ref_audio = ref_audio or configured_audio
+    ref_text = ref_text or configured_text
+    started = time.perf_counter()
+    generation = None
+    total_samples = 0
+    sample_rate = 0
+    gain = None
+
+    try:
+        with _tts_lock:
+            model = load_tts(model_id)
+            sample_rate = int(model.sample_rate)
+            yield _stream_event({"type": "ready", "sample_rate": sample_rate})
+            generation = model.generate(
+                text=cleaned,
+                speed=speed,
+                lang_code=TTS_CFG.get("language", "Portuguese"),
+                ref_audio=ref_audio,
+                ref_text=ref_text,
+                instruct=TTS_CFG.get("instruct"),
+                temperature=TTS_CFG.get("temperature", 0.55),
+                max_tokens=tts_token_budget(cleaned),
+                stream=True,
+                streaming_interval=TTS_CFG.get("streaming_interval", 0.32),
+                verbose=False,
+            )
+            for result in generation:
+                audio = np.array(result.audio, dtype=np.float32).reshape(-1)
+                if not audio.size:
+                    continue
+                if gain is None:
+                    rms = float(np.sqrt(np.mean(np.square(audio))))
+                    gain = min(4.0, 0.10 / rms) if rms > 1e-5 else 1.0
+                normalized = np.clip(audio * gain, -0.95, 0.95)
+                pcm = (normalized * 32767.0).astype("<i2").tobytes()
+                total_samples += audio.size
+                yield _stream_event(
+                    {
+                        "type": "audio",
+                        "sample_rate": sample_rate,
+                        "pcm_s16le": base64.b64encode(pcm).decode("ascii"),
+                    }
+                )
+
+        if not total_samples:
+            yield _stream_event({"type": "error", "detail": "TTS não gerou áudio"})
+            return
+        total = time.perf_counter() - started
+        duration = total_samples / sample_rate
+        yield _stream_event(
+            {
+                "type": "done",
+                "audio_duration_s": round(duration, 3),
+                "total_s": round(total, 3),
+                "rtf": round(total / duration, 3) if duration else None,
+            }
+        )
+    except GeneratorExit:
+        raise
+    except Exception as error:
+        yield _stream_event({"type": "error", "detail": f"TTS falhou: {error}"})
+    finally:
+        if generation is not None:
+            generation.close()
+        model = _tts_model
+        decoder = getattr(getattr(model, "speech_tokenizer", None), "decoder", None)
+        if decoder is not None and hasattr(decoder, "reset_streaming_state"):
+            decoder.reset_streaming_state()
+
+
+def stream_kokoro_audio(text: str, model_id: str, speed: float = 1.0):
+    """Gera frases curtas com Kokoro e entrega cada uma diretamente ao player."""
+    chunks = split_tts_text(text, max_chars=220)
+    if not chunks:
+        yield _stream_event({"type": "error", "detail": "Texto vazio para TTS"})
+        return
+
+    sample_rate = int(TTS_CFG.get("sample_rate", 24_000))
+    started = time.perf_counter()
+    total_samples = 0
+    try:
+        with _tts_lock:
+            model = load_tts(model_id)
+            yield _stream_event({"type": "ready", "sample_rate": sample_rate})
+            for chunk in chunks:
+                result = model.generate(
+                    chunk,
+                    voice=TTS_CFG.get("voice", "pm_santa"),
+                    speed=speed,
+                    sample_rate=sample_rate,
+                    language=TTS_CFG.get("language", "pt-br"),
+                )
+                audio = np.asarray(result.audio, dtype=np.float32).reshape(-1)
+                if not audio.size:
+                    continue
+                pcm = (np.clip(audio, -0.95, 0.95) * 32767.0).astype("<i2").tobytes()
+                total_samples += audio.size
+                yield _stream_event(
+                    {
+                        "type": "audio",
+                        "sample_rate": sample_rate,
+                        "pcm_s16le": base64.b64encode(pcm).decode("ascii"),
+                    }
+                )
+        if not total_samples:
+            yield _stream_event({"type": "error", "detail": "TTS não gerou áudio"})
+            return
+        total = time.perf_counter() - started
+        duration = total_samples / sample_rate
+        yield _stream_event(
+            {
+                "type": "done",
+                "audio_duration_s": round(duration, 3),
+                "total_s": round(total, 3),
+                "rtf": round(total / duration, 3) if duration else None,
+            }
+        )
+    except GeneratorExit:
+        raise
+    except Exception as error:
+        yield _stream_event({"type": "error", "detail": f"TTS falhou: {error}"})
+
+
+def warm_tts_streaming() -> None:
+    """Carrega modelo e kernels Metal antes da primeira pergunta."""
+    global _tts_warmed, _tts_warmup_error
+    time.sleep(0.5)
+    generation = None
+    try:
+        with _tts_lock:
+            model = load_tts(TTS_CFG["model"])
+            if is_kokoro_tts(TTS_CFG["model"]):
+                model.generate(
+                    "Pronto.",
+                    voice=TTS_CFG.get("voice", "pm_santa"),
+                    sample_rate=int(TTS_CFG.get("sample_rate", 24_000)),
+                    language=TTS_CFG.get("language", "pt-br"),
+                )
+            else:
+                ref_audio, ref_text = configured_tts_reference()
+                generation = model.generate(
+                    text="Pronto.",
+                    lang_code=TTS_CFG.get("language", "Portuguese"),
+                    ref_audio=ref_audio,
+                    ref_text=ref_text,
+                    instruct=TTS_CFG.get("instruct"),
+                    temperature=TTS_CFG.get("temperature", 0.55),
+                    max_tokens=80,
+                    stream=True,
+                    streaming_interval=TTS_CFG.get("streaming_interval", 0.32),
+                    verbose=False,
+                )
+                next(generation, None)
+            _tts_warmed = True
+            print("[tts] streaming aquecido")
+    except Exception as error:
+        _tts_warmup_error = str(error)
+        print(f"[tts] falha no aquecimento: {error}")
+    finally:
+        if generation is not None:
+            generation.close()
+        model = _tts_model
+        decoder = getattr(getattr(model, "speech_tokenizer", None), "decoder", None)
+        if decoder is not None and hasattr(decoder, "reset_streaming_state"):
+            decoder.reset_streaming_state()
+
+
+@app.on_event("startup")
+def schedule_tts_warmup() -> None:
+    threading.Thread(target=warm_tts_streaming, daemon=True).start()
 
 
 class ChatMessage(BaseModel):
@@ -435,7 +700,13 @@ def health():
         "local": True,
         "llm": {"online": llm_ok, "base_url": LLM["base_url"]},
         "stt": {"model": STT_CFG["model"], "loaded": _stt_model is not None},
-        "tts": {"model": TTS_CFG["model"], "loaded": _tts_model is not None},
+        "tts": {
+            "model": TTS_CFG["model"],
+            "loaded": _tts_model is not None,
+            "warmed": _tts_warmed,
+            "warmup_error": _tts_warmup_error,
+            "voice": TTS_CFG.get("voice"),
+        },
         "timestamp": time.time(),
     }
 
@@ -456,7 +727,8 @@ def models():
         "stt": STT_CFG["model"],
         "tts": {
             "model": TTS_CFG["model"],
-            "language": TTS_CFG.get("language", "Portuguese"),
+            "language": TTS_CFG.get("language", "pt-br"),
+            "voice": TTS_CFG.get("voice"),
         },
     }
 
@@ -496,12 +768,24 @@ def chat(req: ChatRequest):
 def tts(req: TTSRequest):
     model_id = req.model or TTS_CFG["model"]
     try:
-        with _pipeline_lock:
+        with _tts_lock:
             return run_tts(req.text, model_id, req.speed, req.ref_audio, req.ref_text)
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(500, f"TTS falhou: {e}")
+
+
+@app.post("/tts/stream")
+def tts_stream(req: TTSRequest):
+    if not normalize_tts_text(req.text):
+        raise HTTPException(400, "Texto vazio para TTS")
+    model_id = req.model or TTS_CFG["model"]
+    return StreamingResponse(
+        stream_tts_audio(req.text, model_id, req.speed, req.ref_audio, req.ref_text),
+        media_type="application/x-ndjson",
+        headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"},
+    )
 
 
 @app.post("/conversation")
@@ -521,6 +805,7 @@ def conversation(file: UploadFile = File(...), mode: str = "quality", speed: flo
             messages = store.messages()
             llm = chat_llm(messages, LLM_MODEL, None, None)
             store.turns[-1]["content"] = llm["content"]
+        with _tts_lock:
             audio = run_tts(llm["content"], TTS_CFG["model"], speed)
         return {
             "transcript": user_text,

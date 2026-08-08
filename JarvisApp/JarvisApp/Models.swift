@@ -149,3 +149,9 @@ struct TTSResponse: Codable {
     let total_s: Double?
     let rtf: Double?
 }
+
+enum TTSStreamEvent {
+    case ready(sampleRate: Double)
+    case audio(sampleRate: Double, pcmS16LE: Data)
+    case done(audioDuration: Double?, total: Double?, rtf: Double?)
+}

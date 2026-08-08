@@ -12,9 +12,11 @@
     "language": "pt"
   },
   "tts": {
-    "model": "mlx-community/Qwen3-TTS-12Hz-1.7B-VoiceDesign-8bit",
-    "language": "Portuguese",
-    "instruct": "Voz de um homem brasileiro adulto de cerca de 40 anos, barítono grave e encorpado. Timbre inequivocamente masculino, pitch baixo, fala natural, sofisticada, calma e confiante, com sotaque neutro do português do Brasil. Evite voz aguda, delicada ou feminina. Não use sotaque de Portugal."
+    "provider": "kokoro_mlx",
+    "model": "mlx-community/Kokoro-82M-bf16",
+    "voice": "pm_santa",
+    "language": "pt-br",
+    "sample_rate": 24000
   },
   "server": {
     "host": "127.0.0.1",
