@@ -116,7 +116,7 @@ class TTSTextTests(unittest.TestCase):
         self.assertEqual(model.kwargs["streaming_interval"], 0.32)
         self.assertGreaterEqual(model.speech_tokenizer.decoder.reset_count, 1)
 
-    def test_streams_kokoro_santa_in_brazilian_portuguese(self):
+    def test_streams_kokoro_alex_in_brazilian_portuguese(self):
         class Model:
             def __init__(self):
                 self.calls = []
@@ -136,7 +136,7 @@ class TTSTextTests(unittest.TestCase):
 
         self.assertEqual([event["type"] for event in events], ["ready", "audio", "done"])
         self.assertEqual(events[1]["sample_rate"], 24_000)
-        self.assertEqual(model.calls[0][1]["voice"], "pm_santa")
+        self.assertEqual(model.calls[0][1]["voice"], "pm_alex")
         self.assertEqual(model.calls[0][1]["language"], "pt-br")
         self.assertGreater(len(base64.b64decode(events[1]["pcm_s16le"])), 0)
 

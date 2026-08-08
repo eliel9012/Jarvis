@@ -3,7 +3,7 @@
 Assistente pessoal nativo macOS — **100% local**. Ouve, transcreve, responde e fala, tudo neste Mac, sem nenhuma API externa.
 
 ```
-MICROFONE → VAD → Whisper (MLX) → Qwen 3.5 9B → Kokoro Santa pt-BR (MLX) → alto-falantes
+MICROFONE → VAD → Whisper (MLX) → Qwen 3.5 9B → Kokoro Alex pt-BR (MLX) → alto-falantes
 ```
 
 ## Arquitetura
@@ -45,12 +45,12 @@ pelo SwiftData.
 | Framework ML | MLX / MLX-LM / MLX-Audio | https://github.com/ml-explore/mlx · mlx-lm · https://github.com/Blaizzy/mlx-audio |
 | STT | Whisper Large v3 Turbo (MLX) | https://github.com/Blaizzy/mlx-audio |
 | LLM | Qwen 3.5 9B MLX 4-bit (servido pela API local) | https://huggingface.co/lmstudio-community/Qwen3.5-9B-MLX-4bit |
-| TTS | Kokoro 82M, voz masculina Santa pt-BR (MLX) | https://github.com/gabrimatic/kokoro-mlx · https://huggingface.co/mlx-community/Kokoro-82M-bf16 |
+| TTS | Kokoro 82M, voz masculina Alex pt-BR (MLX) | https://github.com/gabrimatic/kokoro-mlx · https://huggingface.co/mlx-community/Kokoro-82M-bf16 |
 | Servidor LLM | API OpenAI-compatible local (127.0.0.1:1234) | — |
 | Backend | FastAPI + uvicorn | https://fastapi.tiangolo.com |
 
 > O Kokoro usa a implementação MLX nativa para Apple Silicon e a voz brasileira
-> masculina `pm_santa`. O backend aquece o modelo ao iniciar para evitar latência
+> masculina `pm_alex`. O backend aquece o modelo ao iniciar para evitar latência
 > na primeira resposta.
 
 ## Modelos Hugging Face
@@ -110,7 +110,7 @@ ociosa — não é obrigatório abrir o Terminal.
 - **Push to Talk**: segure `⌥ Space` para ouvir, solte para processar.
 - **Texto**: digite em "Pergunte ao Jarvis..." e pressione Enter.
 - **LLM**: Qwen 3.5 9B local, com raciocínio desativado para reduzir a latência.
-- **Voz**: Kokoro 82M, voz masculina Santa (`pm_santa`) em português brasileiro.
+- **Voz**: Kokoro 82M, voz masculina Alex (`pm_alex`) em português brasileiro.
 - **Histórico**: mensagens digitadas, transcrições STT e respostas são persistidas localmente com sua origem.
 - **Áudio temporário**: capturas do microfone são apagadas após a transcrição. A fala em streaming não cria WAV; o endpoint legado apaga seus órfãos automaticamente.
 
@@ -133,7 +133,7 @@ Ver acima. O produto final fica em
 
 - **General**: Start at Login, Speak responses, push-to-talk.
 - **LLM**: modelo, temperature e max tokens.
-- **Voice**: Kokoro Santa pt-BR e velocidade.
+- **Voice**: Kokoro Alex pt-BR e velocidade.
 - **Transcrição**: Whisper Turbo e idioma, sem usar a permissão Speech da Apple.
 - **Privacy**: processamento local ON, rede OFF.
 - **Advanced**: status do backend, logs, modelos.
@@ -196,7 +196,7 @@ local já aquecida. Veja `Benchmarks/*.json`.
 | STT Whisper (10 s) | RTF 0.06 |
 | STT Whisper (30 s) | RTF 0.02 |
 | LLM Qwen 3.5 9B (warm) | 41.8 tok/s, TTFT 0.316 s |
-| TTS Kokoro Santa pt-BR (warm) | primeiro áudio em 0.253 s; RTF 0.040; 5.83 s de áudio em 0.234 s |
+| TTS Kokoro Alex pt-BR (warm) | 5.58 s de áudio em 0.151 s; RTF 0.027; 36.9× tempo real |
 | End-to-end | rode novamente após a troca da LLM |
 
 Para re-medir:

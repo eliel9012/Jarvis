@@ -8,7 +8,7 @@ final class JarvisViewModel: ObservableObject {
     @Published var state: JarvisState = .idle
     @Published var messages: [ChatMessage] = []
     @Published var backendStatus: BackendManager.Status = .connecting
-    @Published var footerModels = "Qwen 3.5 9B • Kokoro Santa pt-BR • Whisper Turbo"
+    @Published var footerModels = "Qwen 3.5 9B • Kokoro Alex pt-BR • Whisper Turbo"
 
     var backendOnline: Bool { backendStatus == .online }
     var canStartInteraction: Bool {
@@ -54,8 +54,13 @@ final class JarvisViewModel: ObservableObject {
                let llm = config["llm"] as? [String: Any] {
                 let q = llm["model"] as? String ?? "Qwen 3.5 9B"
                 let tts = config["tts"] as? [String: Any]
-                let voice = tts?["voice"] as? String ?? "pm_santa"
-                let ttsLabel = voice == "pm_santa" ? "Kokoro Santa pt-BR" : "Kokoro pt-BR"
+                let voice = tts?["voice"] as? String ?? "pm_alex"
+                let ttsLabel = switch voice {
+                case "pm_alex": "Kokoro Alex pt-BR"
+                case "pm_santa": "Kokoro Santa pt-BR"
+                case "pf_dora": "Kokoro Dora pt-BR"
+                default: "Kokoro pt-BR"
+                }
                 footerModels = "\(q) • \(ttsLabel) • Whisper Turbo"
             }
         }
