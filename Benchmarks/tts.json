@@ -1,0 +1,9 @@
+{
+  "model": "mlx-community/fish-audio-s2-pro-bf16",
+  "text": "Olá, eu sou o Jarvis, com a sua voz.",
+  "audio_duration_s": 2.65,
+  "total_s": 5.593,
+  "rtf": 2.113,
+  "peak_rss_mb": 11323.7,
+  "output": "/Users/eliel/Developer/Jarvis/Audio/output/clone_test.wav"
+}
