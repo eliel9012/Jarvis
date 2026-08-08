@@ -78,9 +78,9 @@ final class JarvisViewModel: ObservableObject {
                 return
             }
             // Transcrição ao vivo é só um extra visual — sem essa permissão, segue sem ela.
-            _ = await microphone.requestSpeechPermission()
+            let liveTranscriptionEnabled = await microphone.requestSpeechPermission()
             state = .listening
-            microphone.startRecording()
+            microphone.startRecording(enableLiveTranscription: liveTranscriptionEnabled)
         }
     }
 
