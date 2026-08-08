@@ -10,7 +10,7 @@ struct SettingsView: View {
         case general = "Geral"
         case llm = "LLM"
         case voice = "Voz"
-        case speech = "Reconhecimento de Fala"
+        case transcription = "Transcrição"
         case privacy = "Privacidade"
         case advanced = "Avançado"
         var id: String { rawValue }
@@ -27,9 +27,9 @@ struct SettingsView: View {
             VoiceTab(settings: settings)
                 .tabItem { Label("Voz", systemImage: "speaker.wave.2") }
                 .tag(SettingsTab.voice)
-            SpeechTab(settings: settings)
-                .tabItem { Label("Fala", systemImage: "waveform") }
-                .tag(SettingsTab.speech)
+            TranscriptionTab(settings: settings)
+                .tabItem { Label("Transcrição", systemImage: "waveform") }
+                .tag(SettingsTab.transcription)
             PrivacyTab()
                 .tabItem { Label("Privacidade", systemImage: "lock.shield") }
                 .tag(SettingsTab.privacy)
@@ -93,7 +93,7 @@ private struct VoiceTab: View {
     }
 }
 
-private struct SpeechTab: View {
+private struct TranscriptionTab: View {
     @ObservedObject var settings: AppSettings
     var body: some View {
         Form {
@@ -102,7 +102,7 @@ private struct SpeechTab: View {
                 Text("Automático").tag("auto")
                 Text("pt-BR").tag("pt")
             }
-            Text("Transcrição ao vivo (exibida durante a fala) usa Speech on-device da Apple. A gravação enviada ao Jarvis usa sempre o Whisper local.")
+            Text("A transcrição acontece depois da captura com o Whisper local. O app não solicita acesso ao Reconhecimento de Fala da Apple.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }

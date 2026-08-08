@@ -291,20 +291,19 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				ENABLE_HARDENED_RUNTIME = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Jarvis;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSAppTransportSecurity = "{}";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "O Jarvis precisa do microfone para ouvir os seus comandos.";
-				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "O Jarvis usa o reconhecimento de fala em português do Brasil para exibir a transcrição ao vivo durante os comandos de voz.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.1.4;
+				MARKETING_VERSION = 0.1.5;
 				PRODUCT_BUNDLE_IDENTIFIER = com.local.jarvis;
 				PRODUCT_NAME = Jarvis;
 				SDKROOT = macosx;
@@ -478,20 +477,19 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				ENABLE_HARDENED_RUNTIME = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Jarvis;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSAppTransportSecurity = "{}";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "O Jarvis precisa do microfone para ouvir os seus comandos.";
-				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "O Jarvis usa o reconhecimento de fala em português do Brasil para exibir a transcrição ao vivo durante os comandos de voz.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.1.4;
+				MARKETING_VERSION = 0.1.5;
 				PRODUCT_BUNDLE_IDENTIFIER = com.local.jarvis;
 				PRODUCT_NAME = Jarvis;
 				SDKROOT = macosx;
