@@ -16,6 +16,9 @@ final class BackendManager: ObservableObject {
     private var process: Process?
     private var monitorTask: Task<Void, Never>?
     private var isStarting = false
+    private var lastStartAttempt: Date?
+    /// Backend python carrega libs pesadas (transformers/scipy) — boot pode passar de 30s.
+    private let startupGracePeriod: TimeInterval = 45
 
     init(
         projectDir: URL = URL(fileURLWithPath: NSString(string: "~/Developer/Jarvis").expandingTildeInPath)
@@ -38,7 +41,7 @@ final class BackendManager: ObservableObject {
                 guard let self else { return }
                 let healthy = await self.isBackendHealthy()
                 self.isRunning = healthy
-                if !healthy && !self.isStarting {
+                if !healthy {
                     self.startBackendIfNeeded()
                 }
                 try? await Task.sleep(nanoseconds: 5_000_000_000)
@@ -63,9 +66,15 @@ final class BackendManager: ObservableObject {
     }
 
     func startBackendIfNeeded() {
-        guard !isRunning, !isStarting else { return }
+        guard !isRunning else { return }
+        // Processo anterior ainda vivo (subindo ou travado) -> não duplica.
+        if let proc = process, proc.isRunning { return }
+        // Dentro do grace period do último start -> ainda pode estar carregando libs pesadas.
+        if let last = lastStartAttempt, Date().timeIntervalSince(last) < startupGracePeriod { return }
+        guard !isStarting else { return }
         isStarting = true
         defer { isStarting = false }
+
         let exists = FileManager.default.fileExists(atPath: pythonPath.path)
         guard exists else {
             lastError = "Backend Python não encontrado em \(pythonPath.path)"
@@ -84,11 +93,18 @@ final class BackendManager: ObservableObject {
         let outHandle = FileHandle(forWritingAtPath: logURL.path)
         proc.standardOutput = outHandle
         proc.standardError = outHandle
+        proc.terminationHandler = { [weak self] terminated in
+            Task { @MainActor in
+                guard let self, self.process === terminated else { return }
+                self.process = nil
+            }
+        }
 
         do {
             try proc.run()
             startedByApp = true
             process = proc
+            lastStartAttempt = Date()
             lastError = nil
             print("[BackendManager] backend iniciado (pid \(proc.processIdentifier))")
         } catch {
@@ -97,6 +113,7 @@ final class BackendManager: ObservableObject {
     }
 
     func stopBackend() {
+        process?.terminationHandler = nil
         process?.terminate()
         process = nil
         startedByApp = false
