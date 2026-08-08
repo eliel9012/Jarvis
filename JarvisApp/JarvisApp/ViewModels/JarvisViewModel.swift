@@ -104,7 +104,10 @@ final class JarvisViewModel: ObservableObject {
         guard let url = microphone.stopRecording() else { return }
         responseTask?.cancel()
         responseTask = Task {
-            defer { responseTask = nil }
+            defer {
+                responseTask = nil
+                TemporaryAudioFiles.remove(url)
+            }
             state = .transcribing
             do {
                 let transcript = try await client.stt(file: url).text
@@ -112,7 +115,7 @@ final class JarvisViewModel: ObservableObject {
                     state = .idle
                     return
                 }
-                await respond(to: transcript)
+                await respond(to: transcript, source: .stt)
             } catch is CancellationError {
                 state = .idle
             } catch {
@@ -133,14 +136,14 @@ final class JarvisViewModel: ObservableObject {
         guard canStartInteraction else { return }
         responseTask?.cancel()
         responseTask = Task {
-            await respond(to: trimmed)
+            await respond(to: trimmed, source: .typed)
             responseTask = nil
         }
     }
 
     /// LLM (`/chat`) + TTS (`/tts`) — compartilhado entre voz e texto.
-    private func respond(to userText: String) async {
-        appendMessage(role: "user", content: userText)
+    private func respond(to userText: String, source: MessageSource) async {
+        appendMessage(role: "user", content: userText, source: source)
         state = .thinking
         do {
             try Task.checkCancellation()
@@ -150,7 +153,7 @@ final class JarvisViewModel: ObservableObject {
                 temperature: settings.temperature
             )
             let answer = result.content.isEmpty ? (result.reasoning ?? "") : result.content
-            appendMessage(role: "assistant", content: answer)
+            appendMessage(role: "assistant", content: answer, source: .assistant)
             if settings.speakResponses {
                 state = .synthesizing
                 let tts = try await client.tts(
@@ -158,8 +161,10 @@ final class JarvisViewModel: ObservableObject {
                     speed: settings.ttsSpeed
                 )
                 try Task.checkCancellation()
+                let audioURL = URL(fileURLWithPath: tts.audio_path)
+                defer { TemporaryAudioFiles.remove(audioURL) }
                 state = .speaking
-                try await audioPlayer.play(url: URL(fileURLWithPath: tts.audio_path))
+                try await audioPlayer.play(url: audioURL)
             }
             if state != .idle { state = .idle }
         } catch is CancellationError {
@@ -173,15 +178,16 @@ final class JarvisViewModel: ObservableObject {
         messages = []
         history = []
         audioPlayer.stop()
+        historyStore.startNewConversation()
         state = .idle
     }
 
-    private func appendMessage(role: String, content: String) {
-        let msg = ChatMessage(role: role, content: content)
+    private func appendMessage(role: String, content: String, source: MessageSource) {
+        let msg = ChatMessage(role: role, content: content, source: source)
         messages.append(msg)
         history.append(msg)
         history = ConversationHistory.trimmed(history)
-        historyStore.append(role: role, text: content)
+        historyStore.append(role: role, text: content, source: source)
     }
 
     func refreshBackendStatus() {

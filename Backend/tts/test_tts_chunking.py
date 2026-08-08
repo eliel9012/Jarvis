@@ -13,7 +13,7 @@ from server import _generate_tts_chunk, normalize_tts_text, split_tts_text
 
 class TTSTextTests(unittest.TestCase):
     def test_normalizes_markdown_for_speech(self):
-        source = "## Olá\n\nIsto é **importante**. Veja [o projeto](https://example.com)."
+        source = "## Olá 😊\n\nIsto é **importante**. Veja [o projeto](https://example.com)."
         self.assertEqual(
             normalize_tts_text(source),
             "Olá Isto é importante. Veja o projeto.",
@@ -46,6 +46,33 @@ class TTSTextTests(unittest.TestCase):
             )
             self.assertGreater(len(paths), 1)
             self.assertTrue(all(path.exists() for path in paths))
+
+    def test_retries_short_generation_with_a_larger_budget(self):
+        calls = []
+
+        def fake_generate_audio(**kwargs):
+            calls.append(kwargs["max_tokens"])
+            output = Path(kwargs["output_path"]) / f"{kwargs['file_prefix']}.wav"
+            if len(calls) == 1:
+                duration = kwargs["max_tokens"] / 12.5 * 0.95
+            else:
+                duration = 1.0
+            sf.write(output, np.zeros(int(24_000 * duration)), 24_000)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            paths = _generate_tts_chunk(
+                fake_generate_audio,
+                object(),
+                "Bom dia!",
+                Path(tmp),
+                "retry",
+                1.0,
+                None,
+                None,
+            )
+            self.assertEqual(len(calls), 2)
+            self.assertGreater(calls[1], calls[0])
+            self.assertEqual(len(paths), 1)
 
 
 if __name__ == "__main__":

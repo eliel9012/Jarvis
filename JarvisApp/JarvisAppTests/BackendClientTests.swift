@@ -136,13 +136,13 @@ final class BackendClientTests: XCTestCase {
     func testHTTPErrorPropagation() async {
         MockURLProtocol.requestHandler = { request in
             let response = HTTPURLResponse(url: request.url!, statusCode: 500, httpVersion: nil, headerFields: nil)!
-            return (response, Data())
+            return (response, Data("{\"detail\":\"TTS falhou no bloco 2\"}".utf8))
         }
         do {
             _ = try await client.health()
             XCTFail("Deveria lançar erro para status 500")
         } catch {
-            // esperado
+            XCTAssertTrue(error.localizedDescription.contains("TTS falhou no bloco 2"))
         }
     }
 }

@@ -15,8 +15,8 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.local.jarvis
         PRODUCT_NAME: Jarvis
-        MARKETING_VERSION: 0.1.2
-        CURRENT_PROJECT_VERSION: 3
+        MARKETING_VERSION: 0.1.3
+        CURRENT_PROJECT_VERSION: 4
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: Jarvis
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.productivity

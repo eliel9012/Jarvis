@@ -14,6 +14,7 @@ import re
 import shutil
 import threading
 import time
+import unicodedata
 import uuid
 from pathlib import Path
 
@@ -42,7 +43,7 @@ SYSTEM_PROMPT = "Você é Jarvis, um assistente pessoal local."
 if SYSTEM_PROMPT_PATH.exists():
     SYSTEM_PROMPT = SYSTEM_PROMPT_PATH.read_text().strip()
 
-app = FastAPI(title="Jarvis Local Backend", version="0.1.1")
+app = FastAPI(title="Jarvis Local Backend", version="0.1.3")
 app.add_middleware(
     CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"]
 )
@@ -117,6 +118,13 @@ def normalize_tts_text(text: str) -> str:
     text = re.sub(r"\[([^\]]+)]\([^)]+\)", r"\1", text)
     text = re.sub(r"^\s{0,3}(?:#{1,6}|[-+*])\s+", "", text, flags=re.MULTILINE)
     text = re.sub(r"[`*_~>]", "", text)
+    # Emojis/símbolos pictográficos podem fazer o Qwen3-TTS entrar em geração
+    # longa ou vazia. O conteúdo textual continua intacto no histórico/UI.
+    text = "".join(
+        character
+        for character in text
+        if unicodedata.category(character) not in {"Cs", "So"}
+    )
     return re.sub(r"\s+", " ", text).strip()
 
 
@@ -165,10 +173,13 @@ def _generate_tts_chunk(
     ref_audio,
     ref_text,
     depth: int = 0,
+    retry: int = 0,
 ) -> list[Path]:
     # Qwen3-TTS produz cerca de 12,5 tokens de áudio por segundo. O limite
     # dinâmico impede o loop de 1.200 tokens/96 s observado em textos longos.
-    max_tokens = min(260, max(100, int(len(text) * 1.45)))
+    # O piso anterior de 100 tokens causava falsos positivos até em "Bom dia!".
+    base_tokens = min(420, max(180, int(len(text) * 2.2)))
+    max_tokens = min(560, int(base_tokens * (1.45 if retry else 1.0)))
     output = out_dir / f"{prefix}.wav"
     generate_audio(
         text=text,
@@ -179,7 +190,7 @@ def _generate_tts_chunk(
         join_audio=True,
         verbose=False,
         max_tokens=max_tokens,
-        temperature=0.65,
+        temperature=0.55 if retry else 0.65,
         speed=speed,
         ref_audio=ref_audio,
         ref_text=ref_text,
@@ -192,9 +203,9 @@ def _generate_tts_chunk(
     duration = sf.info(output).duration
     token_limit_duration = max_tokens / 12.5
     hit_token_limit = duration >= token_limit_duration * 0.92
-    if hit_token_limit and len(text) > 48 and depth < 2:
+    if hit_token_limit and len(text) > 72 and depth < 2:
         output.unlink(missing_ok=True)
-        smaller = split_tts_text(text, max_chars=max(48, len(text) // 2))
+        smaller = split_tts_text(text, max_chars=max(40, len(text) // 2))
         if len(smaller) > 1:
             generated: list[Path] = []
             for index, chunk in enumerate(smaller):
@@ -212,10 +223,43 @@ def _generate_tts_chunk(
                     )
                 )
             return generated
+    if hit_token_limit and retry == 0:
+        output.unlink(missing_ok=True)
+        return _generate_tts_chunk(
+            generate_audio,
+            model,
+            text,
+            out_dir,
+            prefix,
+            speed,
+            ref_audio,
+            ref_text,
+            depth,
+            retry=1,
+        )
     if hit_token_limit:
         output.unlink(missing_ok=True)
         raise HTTPException(500, "TTS atingiu o limite de geração antes de concluir a fala")
     return [output]
+
+
+def cleanup_orphaned_audio(max_age_seconds: float = 3600) -> int:
+    """Remove WAVs temporários abandonados por encerramentos inesperados."""
+    if not OUTPUT_DIR.exists():
+        return 0
+    cutoff = time.time() - max_age_seconds
+    removed = 0
+    for path in OUTPUT_DIR.glob("*.wav"):
+        is_generated = path.stem.isdigit() or path.name.startswith("in_")
+        if not is_generated:
+            continue
+        try:
+            if path.stat().st_mtime <= cutoff:
+                path.unlink(missing_ok=True)
+                removed += 1
+        except OSError:
+            continue
+    return removed
 
 
 def _join_and_normalize_audio(paths: list[Path], destination: Path) -> float:
@@ -249,9 +293,12 @@ def run_tts(text: str, model_id: str, speed: float = 1.0, ref_audio=None, ref_te
     from mlx_audio.tts.generate import generate_audio
 
     model = load_tts(model_id)
-    out_dir = OUTPUT_DIR / "gen"
-    out_dir.mkdir(parents=True, exist_ok=True)
+    removed = cleanup_orphaned_audio()
+    if removed:
+        print(f"[tts] removidos {removed} WAVs órfãos do cache")
     prefix = f"{time.time_ns()}"
+    out_dir = OUTPUT_DIR / "gen" / prefix
+    out_dir.mkdir(parents=True, exist_ok=True)
     started = time.perf_counter()
     final = OUTPUT_DIR / f"{prefix}.wav"
     chunks = split_tts_text(text)
@@ -273,9 +320,13 @@ def run_tts(text: str, model_id: str, speed: float = 1.0, ref_audio=None, ref_te
                 )
             )
         duration = _join_and_normalize_audio(generated, final)
+    except Exception:
+        final.unlink(missing_ok=True)
+        raise
     finally:
         for path in generated:
             path.unlink(missing_ok=True)
+        shutil.rmtree(out_dir, ignore_errors=True)
     total = time.perf_counter() - started
     return {
         "text": text,

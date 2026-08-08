@@ -20,7 +20,10 @@ struct BackendClient {
         let url = baseURL.appendingPathComponent(path)
         let (data, response) = try await session.data(from: url)
         guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
-            throw BackendError.httpStatus(response: response)
+            throw BackendError.httpStatus(
+                code: (response as? HTTPURLResponse)?.statusCode ?? -1,
+                detail: backendErrorDetail(from: data)
+            )
         }
         return try JSONDecoder().decode(T.self, from: data)
     }
@@ -32,9 +35,19 @@ struct BackendClient {
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
         let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
-            throw BackendError.httpStatus(response: response)
+            throw BackendError.httpStatus(
+                code: (response as? HTTPURLResponse)?.statusCode ?? -1,
+                detail: backendErrorDetail(from: data)
+            )
         }
         return try JSONDecoder().decode(T.self, from: data)
+    }
+
+    private func backendErrorDetail(from data: Data) -> String? {
+        guard let payload = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let detail = payload["detail"] as? String,
+              !detail.isEmpty else { return nil }
+        return detail
     }
 
     private func multipart<T: Decodable>(
@@ -61,7 +74,10 @@ struct BackendClient {
         request.httpBody = body
         let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
-            throw BackendError.httpStatus(response: response)
+            throw BackendError.httpStatus(
+                code: (response as? HTTPURLResponse)?.statusCode ?? -1,
+                detail: backendErrorDetail(from: data)
+            )
         }
         return try JSONDecoder().decode(T.self, from: data)
     }
@@ -109,14 +125,12 @@ struct BackendClient {
 }
 
 enum BackendError: LocalizedError {
-    case httpStatus(response: URLResponse)
+    case httpStatus(code: Int, detail: String?)
 
     var errorDescription: String? {
         switch self {
-        case .httpStatus(let response):
-            let code = (response as? HTTPURLResponse)?.statusCode ?? -1
-            let body = (response as? HTTPURLResponse)?.value(forHTTPHeaderField: "x-debug") ?? ""
-            return "Backend respondeu com status \(code)\(body.isEmpty ? "" : " (\(body))")"
+        case .httpStatus(let code, let detail):
+            return "Backend respondeu com status \(code)\(detail.map { ": \($0)" } ?? "")"
         }
     }
 }
