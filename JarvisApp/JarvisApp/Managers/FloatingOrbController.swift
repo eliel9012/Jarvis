@@ -89,35 +89,37 @@ private struct FloatingOrbPanelView: View {
     let onRestore: () -> Void
 
     var body: some View {
-        ZStack(alignment: .bottomTrailing) {
-            Circle()
-                .fill(.ultraThinMaterial)
-                .overlay {
-                    Circle().fill(JarvisTheme.background.opacity(0.72))
-                }
-                .overlay {
-                    Circle().stroke(JarvisTheme.border.opacity(0.65), lineWidth: 1)
-                }
-                .shadow(color: JarvisTheme.cyan.opacity(0.28), radius: 24)
+        JarvisGlassEffectGroup(spacing: 8) {
+            ZStack(alignment: .bottomTrailing) {
+                Circle()
+                    .fill(JarvisTheme.background.opacity(0.38))
+                    .jarvisGlassSurface(
+                        tint: JarvisTheme.backgroundRaised.opacity(0.68),
+                        interactive: true,
+                        in: Circle()
+                    )
+                    .shadow(color: JarvisTheme.cyan.opacity(0.36), radius: 24)
 
-            Button(action: toggleListening) {
-                OrbView(state: viewModel.state, size: 106)
-                    .contentShape(Circle())
-            }
-            .buttonStyle(.plain)
-            .disabled(viewModel.state != .listening && !viewModel.canStartInteraction && !viewModel.canInterrupt)
-            .help(viewModel.state == .listening ? "Parar e processar" : "Falar com Jarvis")
+                Button(action: toggleListening) {
+                    OrbView(state: viewModel.state, size: 116)
+                        .contentShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .disabled(viewModel.state != .listening && !viewModel.canStartInteraction && !viewModel.canInterrupt)
+                .help(viewModel.state == .listening ? "Parar e processar" : "Falar com Jarvis")
 
-            Button(action: onRestore) {
-                Image(systemName: "arrow.up.left.and.arrow.down.right")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(.white)
-                    .frame(width: 26, height: 26)
-                    .background(JarvisTheme.backgroundRaised, in: Circle())
-                    .overlay { Circle().stroke(JarvisTheme.border.opacity(0.7), lineWidth: 1) }
+                Button(action: onRestore) {
+                    Image(systemName: "arrow.up.left.and.arrow.down.right")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 18, height: 18)
+                }
+                .jarvisGlassButton(tint: JarvisTheme.cyan.opacity(0.24))
+                .buttonBorderShape(.circle)
+                .controlSize(.regular)
+                .accessibilityLabel("Abrir janela completa")
+                .help("Abrir janela completa")
             }
-            .buttonStyle(.plain)
-            .help("Abrir janela completa")
         }
         .padding(8)
         .frame(width: 132, height: 132)

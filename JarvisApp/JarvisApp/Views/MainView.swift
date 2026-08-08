@@ -97,14 +97,18 @@ struct MainView: View {
             Spacer()
 
             HStack(spacing: 12) {
-                JarvisIconButton(systemName: "clock.arrow.circlepath", help: "Histórico") {
-                    isShowingHistory = true
-                }
-                JarvisIconButton(systemName: "gearshape", help: "Ajustes") {
-                    openSettings()
-                }
-                JarvisIconButton(systemName: "pip.enter", help: "Modo orbe flutuante") {
-                    floatingController.showFloatingOrb()
+                JarvisGlassEffectGroup(spacing: 12) {
+                    HStack(spacing: 12) {
+                        JarvisIconButton(systemName: "clock.arrow.circlepath", help: "Histórico") {
+                            isShowingHistory = true
+                        }
+                        JarvisIconButton(systemName: "gearshape", help: "Ajustes") {
+                            openSettings()
+                        }
+                        JarvisIconButton(systemName: "pip.enter", help: "Modo orbe flutuante") {
+                            floatingController.showFloatingOrb()
+                        }
+                    }
                 }
             }
             .padding(.trailing, 22)
@@ -147,52 +151,51 @@ struct MainView: View {
     }
 
     private var composer: some View {
-        HStack(spacing: 18) {
-            Image(systemName: "sparkles")
-                .font(.system(size: 22, weight: .medium))
-                .foregroundStyle(JarvisTheme.cyan)
-                .frame(width: 48, height: 48)
-                .background(JarvisTheme.backgroundRaised, in: RoundedRectangle(cornerRadius: 12))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(JarvisTheme.border.opacity(0.45), lineWidth: 1)
+        JarvisGlassEffectGroup(spacing: 14) {
+            HStack(spacing: 18) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 22, weight: .medium))
+                    .foregroundStyle(JarvisTheme.cyan)
+                    .frame(width: 42, height: 42)
+
+                TextField("Pergunte ao Jarvis...", text: $textInput)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 17))
+                    .foregroundStyle(JarvisTheme.primaryText)
+                    .disabled(!viewModel.canStartInteraction)
+                    .onSubmit(sendText)
+
+                Text("⌥ Espaço para falar")
+                    .font(.system(size: 13))
+                    .foregroundStyle(JarvisTheme.secondaryText)
+
+                Button(action: toggleListening) {
+                    Image(systemName: viewModel.state == .listening ? "stop.fill" : "mic.fill")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 28, height: 28)
                 }
-
-            TextField("Pergunte ao Jarvis...", text: $textInput)
-                .textFieldStyle(.plain)
-                .font(.system(size: 17))
-                .foregroundStyle(JarvisTheme.primaryText)
-                .disabled(!viewModel.canStartInteraction)
-                .onSubmit(sendText)
-
-            Text("⌥ Espaço para falar")
-                .font(.system(size: 13))
-                .foregroundStyle(JarvisTheme.secondaryText)
-
-            Button(action: toggleListening) {
-                Image(systemName: viewModel.state == .listening ? "stop.fill" : "mic.fill")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 50, height: 50)
-                    .background(
-                        viewModel.state == .listening
-                            ? Color.white.opacity(0.11)
-                            : JarvisTheme.cyan.opacity(0.20),
-                        in: Circle()
-                    )
-                    .overlay { Circle().stroke(JarvisTheme.border.opacity(0.58), lineWidth: 1) }
+                .jarvisGlassButton(
+                    tint: viewModel.state == .listening
+                        ? Color.red.opacity(0.72)
+                        : JarvisTheme.cyan.opacity(0.68),
+                    prominent: true
+                )
+                .buttonBorderShape(.circle)
+                .controlSize(.large)
+                .accessibilityLabel(viewModel.state == .listening ? "Parar e processar" : "Falar com Jarvis")
+                .disabled(viewModel.state != .listening && !viewModel.canStartInteraction)
             }
-            .buttonStyle(.plain)
-            .disabled(viewModel.state != .listening && !viewModel.canStartInteraction)
+            .padding(.horizontal, 18)
+            .frame(height: 72)
+            .jarvisGlassSurface(
+                tint: JarvisTheme.cyan.opacity(viewModel.state == .listening ? 0.12 : 0.055),
+                interactive: true,
+                in: RoundedRectangle(cornerRadius: 22, style: .continuous)
+            )
+            .shadow(color: JarvisTheme.cyan.opacity(0.10), radius: 28, y: 10)
         }
-        .padding(.horizontal, 16)
-        .frame(height: 72)
-        .background(JarvisTheme.panel.opacity(0.56), in: RoundedRectangle(cornerRadius: 17))
-        .overlay {
-            RoundedRectangle(cornerRadius: 17)
-                .stroke(JarvisTheme.border.opacity(0.44), lineWidth: 1)
-        }
-        .shadow(color: .black.opacity(0.20), radius: 20, y: 8)
+        .animation(.snappy(duration: 0.35), value: viewModel.state == .listening)
     }
 
     private func sendText() {

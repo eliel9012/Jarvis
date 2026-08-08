@@ -31,6 +31,71 @@ struct JarvisBackground: View {
     }
 }
 
+/// Mantém o Liquid Glass nativo no macOS 26 e um material equivalente
+/// nas versões anteriores ainda suportadas pelo Jarvis.
+extension View {
+    @ViewBuilder
+    func jarvisGlassSurface<S: Shape>(
+        tint: Color? = nil,
+        interactive: Bool = false,
+        in shape: S
+    ) -> some View {
+        if #available(macOS 26.0, *) {
+            glassEffect(.regular.tint(tint).interactive(interactive), in: shape)
+        } else {
+            background(.ultraThinMaterial, in: shape)
+                .overlay {
+                    shape.stroke(JarvisTheme.border.opacity(0.42), lineWidth: 1)
+                }
+        }
+    }
+
+    @ViewBuilder
+    func jarvisGlassButton(tint: Color? = nil, prominent: Bool = false) -> some View {
+        if #available(macOS 26.0, *) {
+            if prominent {
+                if let tint {
+                    buttonStyle(.glassProminent)
+                        .tint(tint)
+                } else {
+                    buttonStyle(.glassProminent)
+                }
+            } else {
+                buttonStyle(.glass(.regular.tint(tint).interactive()))
+            }
+        } else {
+            if let tint {
+                buttonStyle(.bordered)
+                    .tint(tint)
+            } else {
+                buttonStyle(.bordered)
+            }
+        }
+    }
+}
+
+/// Agrupa superfícies de vidro para renderização eficiente e morphing nativo.
+struct JarvisGlassEffectGroup<Content: View>: View {
+    let spacing: CGFloat
+    private let content: Content
+
+    init(spacing: CGFloat = 12, @ViewBuilder content: () -> Content) {
+        self.spacing = spacing
+        self.content = content()
+    }
+
+    @ViewBuilder
+    var body: some View {
+        if #available(macOS 26.0, *) {
+            GlassEffectContainer(spacing: spacing) {
+                content
+            }
+        } else {
+            content
+        }
+    }
+}
+
 struct JarvisIconButton: View {
     let systemName: String
     let help: String
@@ -41,14 +106,12 @@ struct JarvisIconButton: View {
             Image(systemName: systemName)
                 .font(.system(size: 17, weight: .medium))
                 .foregroundStyle(JarvisTheme.primaryText)
-                .frame(width: 38, height: 38)
-                .background(JarvisTheme.panel.opacity(0.62), in: RoundedRectangle(cornerRadius: 10))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 10)
-                        .stroke(JarvisTheme.border.opacity(0.55), lineWidth: 1)
-                }
+                .frame(width: 26, height: 26)
         }
-        .buttonStyle(.plain)
+        .jarvisGlassButton(tint: JarvisTheme.cyan.opacity(0.10))
+        .buttonBorderShape(.circle)
+        .controlSize(.large)
+        .accessibilityLabel(help)
         .help(help)
     }
 }
