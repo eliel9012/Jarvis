@@ -14,6 +14,7 @@ final class JarvisViewModel: ObservableObject {
     let audioPlayer = AudioPlayerManager()
     let backendManager = BackendManager()
     let models = ModelManager()
+    let historyStore = HistoryStore()
     let client = BackendClient.shared
 
     private var history: [ChatMessage] = []
@@ -150,6 +151,7 @@ final class JarvisViewModel: ObservableObject {
         messages.append(msg)
         history.append(msg)
         history = LLMMode.trimmed(history)
+        historyStore.append(role: role, text: content)
     }
 
     func refreshBackendStatus() {

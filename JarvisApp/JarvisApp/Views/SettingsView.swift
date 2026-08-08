@@ -45,7 +45,15 @@ private struct GeneralTab: View {
     @ObservedObject var settings: AppSettings
     var body: some View {
         Form {
-            Toggle("Start at Login", isOn: $settings.startAtLogin)
+            Toggle(isOn: Binding(
+                get: { settings.startAtLogin },
+                set: { newValue in
+                    settings.startAtLogin = newValue
+                    LaunchAtLogin.setEnabled(newValue)
+                }
+            )) {
+                Text("Start at Login")
+            }
             Toggle("Speak responses", isOn: $settings.speakResponses)
             Toggle("Push-to-talk shortcut (⌥ Space)", isOn: $settings.pushToTalk)
         }
