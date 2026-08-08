@@ -1,10 +1,10 @@
 {
   "llm": {
-    "base_url": "http://127.0.0.1:1234/v1",
-    "model": "qwen/qwen3.5-9b",
-    "reasoning_effort": "none",
-    "max_tokens": 1024,
-    "temperature": 0.7,
+    "provider": "mlx_lm",
+    "model": "Qwen 3.5 9B MLX 4-bit",
+    "model_path": "Models/Qwen3.5-9B-MLX-4bit",
+    "max_tokens": 512,
+    "temperature": 0.5,
     "context_compaction_threshold": 28000
   },
   "stt": {

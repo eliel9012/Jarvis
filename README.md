@@ -18,12 +18,12 @@ MICROFONE → VAD → Whisper (MLX) → Qwen 3.5 9B → Kokoro Alex pt-BR (MLX) 
 │   │   └── Services/     BackendClient (HTTP :8765), BackendManager
 │   └── JarvisAppTests/   Testes unitários
 ├── Backend/              Pipeline de ML em Python
-│   ├── llm/              test_llm.py (benchmark via API :1234)
+│   ├── llm/              test_llm.py (benchmark MLX direto)
 │   ├── stt/              transcribe.py, benchmark.py
 │   ├── tts/              synthesize.py (com voice cloning)
 │   ├── api/              server.py (FastAPI em 127.0.0.1:8765)
 │   └── scripts/          end_to_end.py (latência T0–T5)
-├── Models/               (reservado — modelos ficam no cache do HuggingFace)
+├── Models/               Pesos locais do Qwen MLX (ignorados pelo Git)
 ├── Audio/{input,output,references}/
 ├── Logs/
 ├── Config/config.json    Modelos, portas, thresholds
@@ -32,8 +32,8 @@ MICROFONE → VAD → Whisper (MLX) → Qwen 3.5 9B → Kokoro Alex pt-BR (MLX) 
 ```
 
 Fluxo: o app captura áudio (AVFoundation, 16 kHz mono) e chama os serviços locais
-`POST /stt` → `POST /chat` → `POST /tts/stream`. O backend usa Whisper MLX, a
-API local do Qwen 3.5 9B e Kokoro MLX. O PCM da voz é reproduzido diretamente
+`POST /stt` → `POST /chat` → `POST /tts/stream`. O backend usa Whisper MLX, o
+Qwen 3.5 9B no próprio processo por MLX-LM e Kokoro MLX. O PCM é reproduzido diretamente
 enquanto chega, sem criar um arquivo TTS no fluxo normal. Conversas digitadas,
 transcrições STT e respostas do assistente ficam salvas localmente como texto
 pelo SwiftData.
@@ -44,9 +44,9 @@ pelo SwiftData.
 |---|---|---|
 | Framework ML | MLX / MLX-LM / MLX-Audio | https://github.com/ml-explore/mlx · mlx-lm · https://github.com/Blaizzy/mlx-audio |
 | STT | Whisper Large v3 Turbo (MLX) | https://github.com/Blaizzy/mlx-audio |
-| LLM | Qwen 3.5 9B MLX 4-bit (servido pela API local) | https://huggingface.co/lmstudio-community/Qwen3.5-9B-MLX-4bit |
+| LLM | Qwen 3.5 9B MLX 4-bit (carregado no backend) | https://huggingface.co/lmstudio-community/Qwen3.5-9B-MLX-4bit |
 | TTS | Kokoro 82M, voz masculina Alex pt-BR (MLX) | https://github.com/gabrimatic/kokoro-mlx · https://huggingface.co/mlx-community/Kokoro-82M-bf16 |
-| Servidor LLM | API OpenAI-compatible local (127.0.0.1:1234) | — |
+| Runtime LLM | MLX-LM dentro do backend Jarvis | https://github.com/ml-explore/mlx-lm |
 | Backend | FastAPI + uvicorn | https://fastapi.tiangolo.com |
 
 > O Kokoro usa a implementação MLX nativa para Apple Silicon e a voz brasileira
@@ -57,23 +57,26 @@ pelo SwiftData.
 
 | Função | Modelo | Tamanho |
 |---|---|---|
-| LLM | `qwen/qwen3.5-9b` (via API :1234) | 9B, MLX 4-bit |
+| LLM | `Models/Qwen3.5-9B-MLX-4bit` | 9B, MLX 4-bit; ~5,6 GB |
 | STT | `mlx-community/whisper-large-v3-turbo-asr-fp16` | ~1.6 GB |
 | TTS | `mlx-community/Kokoro-82M-bf16` | 82M; ~372 MB no cache local medido |
 
 Os modelos TTS/STT ficam em `~/.cache/huggingface/hub/` (cache padrão).
-O LLM é usado através do servidor OpenAI-compatible local na porta **1234**
-(ex.: LM Studio / llama.cpp). O valor de `llm.model` precisa ser igual ao `id`
-devolvido por `http://127.0.0.1:1234/v1/models`. A alternativa com
-`mlx_lm.server` é usar uma quantização MLX do mesmo modelo:
+O backend carrega os pesos diretamente por `mlx_lm.load`; não depende de LM
+Studio, llama.cpp, Ollama nem de uma API LLM. Em uma instalação nova, baixe os
+pesos uma vez para o diretório local do projeto:
 
 ```bash
-mlx_lm.server --model lmstudio-community/Qwen3.5-9B-MLX-4bit --host 127.0.0.1 --port 1234
-# confira o id exposto em /v1/models e ajuste llm.model, se necessário
+cd ~/Developer/Jarvis
+Backend/.venv/bin/hf download lmstudio-community/Qwen3.5-9B-MLX-4bit \
+  --local-dir Models/Qwen3.5-9B-MLX-4bit
 ```
 
-O backend envia `reasoning_effort: none`: para um assistente de voz, isso evita
-que o modelo gaste a janela de saída em raciocínio interno antes da resposta.
+O template do Qwen usa `enable_thinking: false`: para um assistente de voz, isso
+evita raciocínio interno antes da resposta.
+O `Config/system_prompt.txt` é sempre inserido pelo backend antes do histórico.
+Por padrão, o Jarvis responde em uma ou duas frases, com até cerca de 35 palavras,
+sem Markdown; respostas longas continuam disponíveis quando forem solicitadas.
 
 ## Instalação
 
@@ -86,11 +89,12 @@ uv venv --python 3.12 .venv
 source .venv/bin/activate
 uv pip install -r requirements.txt
 
-# 2) Servidor LLM local (deixe rodando)
-lms load qwen/qwen3.5-9b --identifier qwen/qwen3.5-9b --gpu max -y
-lms server start --port 1234
+# 2) Qwen local — só é necessário na primeira instalação
+cd ~/Developer/Jarvis
+Backend/.venv/bin/hf download lmstudio-community/Qwen3.5-9B-MLX-4bit \
+  --local-dir Models/Qwen3.5-9B-MLX-4bit
 
-# 3) Backend JARVIS
+# 3) Backend JARVIS — carrega Qwen, Whisper e Kokoro por MLX
 cd ~/Developer/Jarvis/Backend/api
 python server.py          # 127.0.0.1:8765
 
@@ -144,7 +148,8 @@ Ver acima. O produto final fica em
 ## Privacidade
 
 - Todo processamento acontece neste Mac.
-- O app só fala com `127.0.0.1:8765` e o backend só com `127.0.0.1:1234`.
+- O app só fala com o próprio backend em `127.0.0.1:8765`.
+- Qwen, Whisper e Kokoro são carregados diretamente dos arquivos locais por MLX.
 - Únicas chamadas externas são **downloads iniciais de modelos** durante a
   instalação, a partir de:
   - `huggingface.co`, `cdn-lfs.huggingface.co` (modelos)
@@ -157,9 +162,9 @@ Ver acima. O produto final fica em
 
 - **Backend offline**: `curl http://127.0.0.1:8765/health`. Se o venv não
   existir, rode a etapa 1 da instalação. Veja `~/Developer/Jarvis/Logs/backend.out.log`.
-- **LLM lento / sem resposta**: a API da porta 1234 pode estar carregando o modelo
-  a frio (10–30 s). Mantenha o Qwen 3.5 9B carregado, ou reduza
-  `max_tokens` em `Config/config.json`.
+- **LLM lento / sem resposta**: confirme que `Models/Qwen3.5-9B-MLX-4bit`
+  existe. A primeira inicialização carrega ~5,6 GB e compila kernels Metal; as
+  próximas respostas usam o modelo aquecido. Reduza `max_tokens` se necessário.
 - **Microfone**: dê permissão em System Settings → Privacy & Security →
   Microphone (o app usa o bundle `com.local.jarvis`). O macOS exige essa
   confirmação na primeira utilização. O Jarvis não solicita mais a permissão
@@ -180,8 +185,9 @@ rm -rf ~/.cache/huggingface/hub/models--mlx-community--Kokoro-82M-bf16
 
 ## Trocar LLM
 
-Edite `Config/config.json` → `llm.model` e reinicie o backend. O endpoint
-`/models` lista o modelo configurado e os modelos disponíveis na API local.
+Edite `Config/config.json` → `llm.model_path` e reinicie o backend. O caminho
+pode ser absoluto ou relativo à raiz do projeto e deve apontar para um modelo
+compatível com MLX-LM.
 
 ## Trocar TTS
 
@@ -190,15 +196,15 @@ brasileiras incluídas são `pm_santa`, `pm_alex` e `pf_dora`.
 
 ## Benchmark
 
-Os números abaixo foram **medidos** nesta máquina (M3 Max, 64 GB), com a API
-local já aquecida. Veja `Benchmarks/*.json`.
+Os números abaixo foram **medidos** nesta máquina (M3 Max, 64 GB), com os modelos
+locais já aquecidos. Veja `Benchmarks/*.json`.
 
 | Etapa | Medição |
 |---|---|
 | STT Whisper (5 s) | RTF 0.13 |
 | STT Whisper (10 s) | RTF 0.06 |
 | STT Whisper (30 s) | RTF 0.02 |
-| LLM Qwen 3.5 9B (warm) | 41.8 tok/s, TTFT 0.316 s |
+| LLM Qwen 3.5 9B (warm, Qwen + Kokoro residentes) | 18,7 tok/s; 38 tokens em 3,685 s |
 | TTS Kokoro Alex pt-BR (warm) | 5.58 s de áudio em 0.151 s; RTF 0.027; 36.9× tempo real |
 | End-to-end | rode novamente após a troca da LLM |
 
