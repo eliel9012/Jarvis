@@ -10,23 +10,17 @@ final class StateTransitionTests: XCTestCase {
     }
 
     func testJarvisStateLabels() {
-        XCTAssertEqual(JarvisState.idle.label, "Idle")
-        XCTAssertEqual(JarvisState.listening.label, "Listening...")
-        XCTAssertEqual(JarvisState.thinking.label, "Thinking...")
+        XCTAssertEqual(JarvisState.idle.label, "Ocioso")
+        XCTAssertEqual(JarvisState.listening.label, "Ouvindo...")
+        XCTAssertEqual(JarvisState.thinking.label, "Pensando...")
         XCTAssertTrue(JarvisState.error("boom").label.contains("boom"))
-    }
-
-    func testLLMModeParsing() {
-        XCTAssertEqual(LLMMode(rawValue: "quality"), .quality)
-        XCTAssertEqual(LLMMode(rawValue: "fast"), .fast)
-        XCTAssertNil(LLMMode(rawValue: "other"))
     }
 
     func testHistoryTrimming() {
         let messages = (0..<50).map { i in
             ChatMessage(role: i % 2 == 0 ? "user" : "assistant", content: "msg \(i)")
         }
-        let trimmed = LLMMode.trimmed(messages, maxCount: 10)
+        let trimmed = ConversationHistory.trimmed(messages, maxCount: 10)
         XCTAssertEqual(trimmed.count, 10)
         XCTAssertEqual(trimmed.first?.content, "msg 40")
         XCTAssertEqual(trimmed.last?.content, "msg 49")
@@ -34,6 +28,6 @@ final class StateTransitionTests: XCTestCase {
 
     func testHistoryKeptWhenSmall() {
         let messages = [ChatMessage(role: "user", content: "oi")]
-        XCTAssertEqual(LLMMode.trimmed(messages).count, 1)
+        XCTAssertEqual(ConversationHistory.trimmed(messages).count, 1)
     }
 }

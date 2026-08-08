@@ -1,16 +1,21 @@
-"""TTS local com Fish Audio S2 Pro (MLX) — uso: python synthesize.py --text "..." --output out.wav"""
+"""TTS local pt-BR com Qwen3-TTS (MLX) — uso: python synthesize.py --text "..." --output out.wav"""
 import argparse
 import glob
 import json
 import os
 import resource
 import time
+from pathlib import Path
 
 import soundfile as sf
 
 from mlx_audio.tts.generate import generate_audio
 
-MODEL_DEFAULT = "mlx-community/fish-audio-s2-pro-bf16"
+CONFIG_PATH = Path(__file__).resolve().parents[2] / "Config" / "config.json"
+with open(CONFIG_PATH) as config_file:
+    TTS_CONFIG = json.load(config_file)["tts"]
+
+MODEL_DEFAULT = TTS_CONFIG["model"]
 
 
 def synthesize(
@@ -33,7 +38,8 @@ def synthesize(
         speed=speed,
         ref_audio=ref_audio,
         ref_text=ref_text,
-        lang_code="pt",
+        lang_code=TTS_CONFIG.get("language", "Portuguese"),
+        instruct=TTS_CONFIG.get("instruct"),
     )
     total = time.perf_counter() - t0
     generated = glob.glob(os.path.join(out_dir, "audio_*.wav"))

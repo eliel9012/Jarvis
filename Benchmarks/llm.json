@@ -1,24 +1,15 @@
 {
-  "timestamp": 1786154396.231178,
+  "timestamp": 1786188927.366972,
   "backend": "http://127.0.0.1:1234/v1",
   "results": [
     {
-      "model": "openai/gpt-oss-20b",
-      "prompt_tokens": null,
-      "generated_tokens": 7,
-      "ttft_s": 9.314,
-      "total_s": 9.693,
-      "gen_tokens_per_s": 0.72,
-      "response": "Olá! Estou ativo e pronto para ajudar."
-    },
-    {
-      "model": "qwen/qwen3.6-35b-a3b",
-      "prompt_tokens": null,
-      "generated_tokens": 81,
-      "ttft_s": 9.638,
-      "total_s": 10.885,
-      "gen_tokens_per_s": 7.44,
-      "response": "Here's a thinking process:\n\n1.  **Analyze User Input:**\n   - User asks: \"Qual é o estado do sistema?\" (What is the syste"
+      "model": "qwen/qwen3.5-9b",
+      "prompt_tokens": 55,
+      "generated_tokens": 24,
+      "ttft_s": 0.316,
+      "total_s": 0.574,
+      "gen_tokens_per_s": 41.8,
+      "response": "Olá, sou o Jarvis, seu assistente pessoal local; o sistema está operacional e otimizado para execução."
     }
   ]
 }

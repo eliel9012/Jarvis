@@ -15,7 +15,11 @@ final class ModelManager: ObservableObject {
     }
 
     @Published private(set) var models: [ModelStatus] = []
-    private let hfCache = URL(fileURLWithPath: NSString(string: "~/Library/Caches/huggingface/hub").expandingTildeInPath)
+    private let hfCaches = [
+        "~/Library/Caches/huggingface/hub",
+        "~/.cache/huggingface/hub",
+    ].map { URL(fileURLWithPath: NSString(string: $0).expandingTildeInPath) }
+    private let lmStudioModels = URL(fileURLWithPath: NSString(string: "~/.lmstudio/models").expandingTildeInPath)
 
     init() {
         refresh()
@@ -23,11 +27,9 @@ final class ModelManager: ObservableObject {
 
     func refresh() {
         let candidates: [(String, String, ModelStatus.Kind)] = [
-            ("qwen/qwen3.6-35b-a3b", "Qwen 3.6 35B A3B (Quality)", .llm),
-            ("qwen/qwen3.5-9b", "Qwen 3.5 9B (Fast)", .llm),
+            ("qwen/qwen3.5-9b", "Qwen 3.5 9B MLX 4-bit", .llm),
             ("mlx-community/whisper-large-v3-turbo-asr-fp16", "Whisper Large v3 Turbo", .stt),
-            ("mlx-community/fish-audio-s2-pro-bf16", "Fish S2 Pro BF16", .tts),
-            ("mlx-community/fish-audio-s2-pro-8bit", "Fish S2 Pro 8-bit", .tts),
+            ("mlx-community/Qwen3-TTS-12Hz-1.7B-VoiceDesign-8bit", "Qwen3-TTS 1.7B pt-BR 8-bit", .tts),
         ]
         models = candidates.map { id, name, kind in
             let installed = modelInstalled(id)
@@ -44,8 +46,12 @@ final class ModelManager: ObservableObject {
 
     private func modelInstalled(_ repoID: String) -> (Bool, Int64) {
         let folderName = "models--" + repoID.replacingOccurrences(of: "/", with: "--")
-        let dir = hfCache.appendingPathComponent(folderName)
-        guard FileManager.default.fileExists(atPath: dir.path) else { return (false, 0) }
+        let candidates = hfCaches.map { $0.appendingPathComponent(folderName) } + [
+            lmStudioModels.appendingPathComponent(repoID),
+        ]
+        guard let dir = candidates.first(where: { FileManager.default.fileExists(atPath: $0.path) }) else {
+            return (false, 0)
+        }
         var total: Int64 = 0
         if let enumerator = FileManager.default.enumerator(at: dir, includingPropertiesForKeys: [.totalFileAllocatedSizeKey]) {
             for case let file as URL in enumerator {

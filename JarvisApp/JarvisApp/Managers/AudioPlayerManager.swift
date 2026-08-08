@@ -11,20 +11,33 @@ final class AudioPlayerManager: NSObject, ObservableObject {
     }
 
     private var player: AVAudioPlayer?
+    private var playbackContinuation: CheckedContinuation<Void, Never>?
 
-    func play(url: URL) {
+    func play(url: URL) async throws {
         stop()
-        do {
-            let player = try AVAudioPlayer(contentsOf: url)
-            player.volume = volume
-            player.delegate = self
-            player.play()
-            self.player = player
-            currentURL = url
-            isPlaying = true
-        } catch {
-            print("[AudioPlayer] erro: \(error)")
+        try Task.checkCancellation()
+
+        let player = try AVAudioPlayer(contentsOf: url)
+        player.volume = volume
+        player.delegate = self
+        player.prepareToPlay()
+        self.player = player
+        currentURL = url
+        isPlaying = true
+
+        await withTaskCancellationHandler {
+            await withCheckedContinuation { continuation in
+                playbackContinuation = continuation
+                if !player.play() {
+                    finishPlayback()
+                }
+            }
+        } onCancel: {
+            Task { @MainActor [weak self] in
+                self?.stop()
+            }
         }
+        try Task.checkCancellation()
     }
 
     func stop() {
@@ -32,18 +45,27 @@ final class AudioPlayerManager: NSObject, ObservableObject {
         player = nil
         currentURL = nil
         isPlaying = false
+        playbackContinuation?.resume()
+        playbackContinuation = nil
     }
 
     func replay() {
         guard let currentURL else { return }
-        play(url: currentURL)
+        Task { try? await play(url: currentURL) }
+    }
+
+    private func finishPlayback() {
+        player = nil
+        isPlaying = false
+        playbackContinuation?.resume()
+        playbackContinuation = nil
     }
 }
 
 extension AudioPlayerManager: AVAudioPlayerDelegate {
     nonisolated func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
         Task { @MainActor in
-            self.isPlaying = false
+            self.finishPlayback()
         }
     }
 }

@@ -33,9 +33,11 @@ struct JarvisApp: App {
             Button("Começar a Ouvir") {
                 viewModel.startListening()
             }
-            Button("Parar de Falar") {
+            .disabled(!viewModel.canStartInteraction)
+            Button("Interromper") {
                 viewModel.stopEverything()
             }
+            .disabled(!viewModel.canInterrupt)
             Divider()
             Text("Backend: \(viewModel.backendStatus.label)")
             Divider()

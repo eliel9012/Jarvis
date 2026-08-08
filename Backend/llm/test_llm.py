@@ -6,7 +6,7 @@ import sys
 import httpx
 
 BASE_URL = "http://127.0.0.1:1234/v1"
-MODEL = "qwen/qwen3.6-35b-a3b"
+MODEL = "qwen/qwen3.5-9b"
 SYSTEM_PROMPT = (
     "Você é Jarvis, um assistente pessoal local. "
     "Responda em português brasileiro, de forma natural e concisa. "
@@ -23,7 +23,9 @@ def benchmark(model: str, prompt: str, max_tokens: int = 128) -> dict:
             {"role": "user", "content": prompt},
         ],
         "max_tokens": max_tokens,
+        "reasoning_effort": "none",
         "stream": True,
+        "stream_options": {"include_usage": True},
     }
     started = time.perf_counter()
     first_token_at = None
@@ -40,13 +42,15 @@ def benchmark(model: str, prompt: str, max_tokens: int = 128) -> dict:
                 if data == "[DONE]":
                     break
                 obj = json.loads(data)
-                if first_token_at is None and obj.get("choices"):
+                choices = obj.get("choices") or []
+                if first_token_at is None and choices:
                     first_token_at = time.perf_counter()
-                chunks += 1
-                delta = obj.get("choices", [{}])[0].get("delta", {})
-                piece = delta.get("content") or delta.get("reasoning_content")
-                if piece:
-                    text.append(piece)
+                if choices:
+                    chunks += 1
+                    delta = choices[0].get("delta", {})
+                    piece = delta.get("content") or delta.get("reasoning_content")
+                    if piece:
+                        text.append(piece)
                 if "usage" in obj:
                     usage = obj["usage"]
     total = time.perf_counter() - started

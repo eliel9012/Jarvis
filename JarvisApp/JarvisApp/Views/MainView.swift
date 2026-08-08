@@ -14,9 +14,9 @@ struct MainView: View {
                 HStack(spacing: 6) {
                     Circle().fill(viewModel.backendStatus.color)
                         .frame(width: 8, height: 8)
-                    Text("LOCAL")
+                    Text(viewModel.backendStatus == .online ? "LOCAL" : viewModel.backendStatus.label.uppercased())
                         .font(.caption.bold())
-                        .foregroundStyle(.green)
+                        .foregroundStyle(viewModel.backendStatus.color)
                 }
             }
             .padding(.horizontal, 24)
@@ -62,11 +62,14 @@ struct MainView: View {
                     )
                 }
                 .buttonStyle(.borderedProminent)
+                .disabled(viewModel.state != .listening && !viewModel.canStartInteraction)
 
-                Button("Parar de Falar") {
-                    viewModel.stopEverything()
+                if viewModel.canInterrupt {
+                    Button("Interromper", role: .cancel) {
+                        viewModel.stopEverything()
+                    }
+                    .buttonStyle(.bordered)
                 }
-                .buttonStyle(.bordered)
 
                 Spacer()
 
@@ -84,6 +87,7 @@ struct MainView: View {
             HStack {
                 TextField("Pergunte ao Jarvis...", text: $textInput)
                     .textFieldStyle(.roundedBorder)
+                    .disabled(!viewModel.canStartInteraction)
                     .onSubmit {
                         viewModel.sendText(textInput)
                         textInput = ""

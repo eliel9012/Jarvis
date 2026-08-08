@@ -1,9 +1,15 @@
 {
-  "model": "mlx-community/fish-audio-s2-pro-bf16",
-  "text": "Olá, eu sou o Jarvis, com a sua voz.",
-  "audio_duration_s": 2.65,
-  "total_s": 5.593,
-  "rtf": 2.113,
-  "peak_rss_mb": 11323.7,
-  "output": "/Users/eliel/Developer/Jarvis/Audio/output/clone_test.wav"
+  "model": "mlx-community/Qwen3-TTS-12Hz-1.7B-VoiceDesign-8bit",
+  "language": "Portuguese",
+  "voice": "homem brasileiro adulto, barítono grave e encorpado",
+  "text": "Olá! Eu sou o Jarvis. Esta é a minha nova voz masculina brasileira, mais grave, natural e confiante.",
+  "audio_duration_s": 9.68,
+  "total_s_warm": 2.582,
+  "rtf_warm": 0.267,
+  "generation_speed_x": 3.75,
+  "peak_memory_gb_cold_run": 6.13,
+  "disk_size_gb": 2.9,
+  "sample_rate_hz": 24000,
+  "channels": 1,
+  "output": "/Users/eliel/Developer/Jarvis/Audio/output/1786190015944394000.wav"
 }
