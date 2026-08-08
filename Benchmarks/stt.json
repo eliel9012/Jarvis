@@ -1,0 +1,30 @@
+{
+  "timestamp": 1786153954.977453,
+  "model": "mlx-community/whisper-large-v3-turbo-asr-fp16",
+  "results": [
+    {
+      "duration_s": 5,
+      "text": "E aí",
+      "language": "pt",
+      "duration": 5.0,
+      "processing_time": 0.635,
+      "rtf": 0.127
+    },
+    {
+      "duration_s": 10,
+      "text": "E aí",
+      "language": "pt",
+      "duration": 10.0,
+      "processing_time": 0.548,
+      "rtf": 0.055
+    },
+    {
+      "duration_s": 30,
+      "text": "E aí",
+      "language": "pt",
+      "duration": 30.0,
+      "processing_time": 0.567,
+      "rtf": 0.019
+    }
+  ]
+}
