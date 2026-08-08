@@ -1,4 +1,4 @@
-import AVFoundation
+@preconcurrency import AVFoundation
 import Foundation
 
 /// Controla o microfone via AVFoundation: captura 16 kHz mono,
@@ -65,7 +65,7 @@ final class MicrophoneManager: NSObject, ObservableObject {
             isRecording = true
             silenceSamples = 0
         } catch {
-            stopRecording()
+            _ = stopRecording()
             print("[Microphone] erro ao iniciar: \(error)")
         }
     }
@@ -87,11 +87,12 @@ final class MicrophoneManager: NSObject, ObservableObject {
 
     private func process(buffer: AVAudioPCMBuffer, monoFormat: AVAudioFormat) {
         guard let converter else { return }
-        var converted = AVAudioPCMBuffer(pcmFormat: outputFormat, frameCapacity: AVAudioFrameCount(buffer.frameLength * 2))!
+        let converted = AVAudioPCMBuffer(pcmFormat: outputFormat, frameCapacity: AVAudioFrameCount(buffer.frameLength * 2))!
         var error: NSError?
+        nonisolated(unsafe) let sourceBuffer = buffer
         let status = converter.convert(to: converted, error: &error) { _, outStatus in
             outStatus.pointee = .haveData
-            return buffer
+            return sourceBuffer
         }
         guard status != .error, converted.frameLength > 0 else { return }
 

@@ -75,6 +75,11 @@ final class BackendManager: ObservableObject {
         isStarting = true
         defer { isStarting = false }
 
+        // `process` é nil aqui, então nada nosso está de pé: se algo ainda segura a porta
+        // é lixo órfão de uma sessão anterior (ex: Xcode manda SIGKILL no app e o filho
+        // Python sobrevive). Limpa antes de tentar subir, senão o bind falha pra sempre.
+        killStaleListener()
+
         let exists = FileManager.default.fileExists(atPath: pythonPath.path)
         guard exists else {
             lastError = "Backend Python não encontrado em \(pythonPath.path)"
@@ -109,6 +114,31 @@ final class BackendManager: ObservableObject {
             print("[BackendManager] backend iniciado (pid \(proc.processIdentifier))")
         } catch {
             lastError = "Falha ao iniciar backend: \(error.localizedDescription)"
+        }
+    }
+
+    /// Mata qualquer processo escutando em 127.0.0.1:8765 que não seja o `process` que rastreamos.
+    /// Só chamado quando `process` já é nil, ou seja: o que estiver lá é órfão de sessão anterior.
+    private func killStaleListener() {
+        let lsof = Process()
+        lsof.executableURL = URL(fileURLWithPath: "/usr/sbin/lsof")
+        lsof.arguments = ["-ti", "tcp:8765"]
+        let pipe = Pipe()
+        lsof.standardOutput = pipe
+        lsof.standardError = FileHandle.nullDevice
+        do {
+            try lsof.run()
+        } catch {
+            return
+        }
+        lsof.waitUntilExit()
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        guard let output = String(data: data, encoding: .utf8) else { return }
+        let pids = output.split(separator: "\n").compactMap { Int32($0) }
+        guard !pids.isEmpty else { return }
+        for pid in pids {
+            print("[BackendManager] matando listener órfão na porta 8765 (pid \(pid))")
+            kill(pid, SIGKILL)
         }
     }
 
