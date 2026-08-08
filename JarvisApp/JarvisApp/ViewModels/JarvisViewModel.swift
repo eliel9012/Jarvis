@@ -8,7 +8,7 @@ final class JarvisViewModel: ObservableObject {
     @Published var state: JarvisState = .idle
     @Published var messages: [ChatMessage] = []
     @Published var backendStatus: BackendManager.Status = .connecting
-    @Published var footerModels = "Qwen 3.5 9B • Qwen3-TTS pt-BR • Whisper Turbo"
+    @Published var footerModels = "Qwen 3.5 9B • Kokoro Santa pt-BR • Whisper Turbo"
 
     var backendOnline: Bool { backendStatus == .online }
     var canStartInteraction: Bool {
@@ -53,7 +53,10 @@ final class JarvisViewModel: ObservableObject {
             ) as? [String: Any],
                let llm = config["llm"] as? [String: Any] {
                 let q = llm["model"] as? String ?? "Qwen 3.5 9B"
-                footerModels = "\(q) • Qwen3-TTS 1.7B pt-BR • Whisper Turbo"
+                let tts = config["tts"] as? [String: Any]
+                let voice = tts?["voice"] as? String ?? "pm_santa"
+                let ttsLabel = voice == "pm_santa" ? "Kokoro Santa pt-BR" : "Kokoro pt-BR"
+                footerModels = "\(q) • \(ttsLabel) • Whisper Turbo"
             }
         }
     }
@@ -156,15 +159,14 @@ final class JarvisViewModel: ObservableObject {
             appendMessage(role: "assistant", content: answer, source: .assistant)
             if settings.speakResponses {
                 state = .synthesizing
-                let tts = try await client.tts(
+                let stream = client.ttsStream(
                     text: answer,
                     speed: settings.ttsSpeed
                 )
                 try Task.checkCancellation()
-                let audioURL = URL(fileURLWithPath: tts.audio_path)
-                defer { TemporaryAudioFiles.remove(audioURL) }
-                state = .speaking
-                try await audioPlayer.play(url: audioURL)
+                try await audioPlayer.play(stream: stream) {
+                    state = .speaking
+                }
             }
             if state != .idle { state = .idle }
         } catch is CancellationError {

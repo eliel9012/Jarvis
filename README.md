@@ -3,7 +3,7 @@
 Assistente pessoal nativo macOS — **100% local**. Ouve, transcreve, responde e fala, tudo neste Mac, sem nenhuma API externa.
 
 ```
-MICROFONE → VAD → Whisper (MLX) → Qwen 3.5 9B → Qwen3-TTS pt-BR (MLX) → alto-falantes
+MICROFONE → VAD → Whisper (MLX) → Qwen 3.5 9B → Kokoro Santa pt-BR (MLX) → alto-falantes
 ```
 
 ## Arquitetura
@@ -32,10 +32,11 @@ MICROFONE → VAD → Whisper (MLX) → Qwen 3.5 9B → Qwen3-TTS pt-BR (MLX) �
 ```
 
 Fluxo: o app captura áudio (AVFoundation, 16 kHz mono) e chama os serviços locais
-`POST /stt` → `POST /chat` → `POST /tts`. O backend usa Whisper MLX, a API local
-do Qwen 3.5 9B e Qwen3-TTS MLX; o app reproduz o WAV retornado e o apaga assim
-que a reprodução termina. Conversas digitadas, transcrições STT e respostas do
-assistente ficam salvas localmente como texto pelo SwiftData.
+`POST /stt` → `POST /chat` → `POST /tts/stream`. O backend usa Whisper MLX, a
+API local do Qwen 3.5 9B e Kokoro MLX. O PCM da voz é reproduzido diretamente
+enquanto chega, sem criar um arquivo TTS no fluxo normal. Conversas digitadas,
+transcrições STT e respostas do assistente ficam salvas localmente como texto
+pelo SwiftData.
 
 ## Dependências
 
@@ -44,13 +45,13 @@ assistente ficam salvas localmente como texto pelo SwiftData.
 | Framework ML | MLX / MLX-LM / MLX-Audio | https://github.com/ml-explore/mlx · mlx-lm · https://github.com/Blaizzy/mlx-audio |
 | STT | Whisper Large v3 Turbo (MLX) | https://github.com/Blaizzy/mlx-audio |
 | LLM | Qwen 3.5 9B MLX 4-bit (servido pela API local) | https://huggingface.co/lmstudio-community/Qwen3.5-9B-MLX-4bit |
-| TTS | Qwen3-TTS 12 Hz 1.7B VoiceDesign 8-bit (MLX) | https://github.com/QwenLM/Qwen3-TTS · https://github.com/Blaizzy/mlx-audio |
+| TTS | Kokoro 82M, voz masculina Santa pt-BR (MLX) | https://github.com/gabrimatic/kokoro-mlx · https://huggingface.co/mlx-community/Kokoro-82M-bf16 |
 | Servidor LLM | API OpenAI-compatible local (127.0.0.1:1234) | — |
 | Backend | FastAPI + uvicorn | https://fastapi.tiangolo.com |
 
-> O `mlx-audio` é a implementação usada para aproveitar a GPU/Metal do Apple
-> Silicon. O Qwen3-TTS foi configurado com uma descrição de voz explicitamente
-> brasileira, evitando o sotaque pt-PT do modelo anterior.
+> O Kokoro usa a implementação MLX nativa para Apple Silicon e a voz brasileira
+> masculina `pm_santa`. O backend aquece o modelo ao iniciar para evitar latência
+> na primeira resposta.
 
 ## Modelos Hugging Face
 
@@ -58,9 +59,9 @@ assistente ficam salvas localmente como texto pelo SwiftData.
 |---|---|---|
 | LLM | `qwen/qwen3.5-9b` (via API :1234) | 9B, MLX 4-bit |
 | STT | `mlx-community/whisper-large-v3-turbo-asr-fp16` | ~1.6 GB |
-| TTS | `mlx-community/Qwen3-TTS-12Hz-1.7B-VoiceDesign-8bit` | ~2.9 GB em disco; ~6.1 GB no pico medido |
+| TTS | `mlx-community/Kokoro-82M-bf16` | 82M; ~372 MB no cache local medido |
 
-Os modelos TTS/STT ficam em `~/Library/Caches/huggingface/hub/` (cache padrão).
+Os modelos TTS/STT ficam em `~/.cache/huggingface/hub/` (cache padrão).
 O LLM é usado através do servidor OpenAI-compatible local na porta **1234**
 (ex.: LM Studio / llama.cpp). O valor de `llm.model` precisa ser igual ao `id`
 devolvido por `http://127.0.0.1:1234/v1/models`. A alternativa com
@@ -109,9 +110,9 @@ ociosa — não é obrigatório abrir o Terminal.
 - **Push to Talk**: segure `⌥ Space` para ouvir, solte para processar.
 - **Texto**: digite em "Pergunte ao Jarvis..." e pressione Enter.
 - **LLM**: Qwen 3.5 9B local, com raciocínio desativado para reduzir a latência.
-- **Voz**: Qwen3-TTS 1.7B 8-bit, instruído para português brasileiro neutro.
+- **Voz**: Kokoro 82M, voz masculina Santa (`pm_santa`) em português brasileiro.
 - **Histórico**: mensagens digitadas, transcrições STT e respostas são persistidas localmente com sua origem.
-- **Áudio temporário**: capturas do microfone e respostas TTS são apagadas após o processamento/reprodução; órfãos de uma interrupção inesperada são limpos pelo backend.
+- **Áudio temporário**: capturas do microfone são apagadas após a transcrição. A fala em streaming não cria WAV; o endpoint legado apaga seus órfãos automaticamente.
 
 ### Movimento e feedback visual
 
@@ -132,7 +133,7 @@ Ver acima. O produto final fica em
 
 - **General**: Start at Login, Speak responses, push-to-talk.
 - **LLM**: modelo, temperature e max tokens.
-- **Voice**: Qwen3-TTS pt-BR e velocidade.
+- **Voice**: Kokoro Santa pt-BR e velocidade.
 - **Speech**: Whisper Turbo e idioma.
 - **Privacy**: processamento local ON, rede OFF.
 - **Advanced**: status do backend, logs, modelos.
@@ -164,8 +165,8 @@ Ver acima. O produto final fica em
 ## Limpar modelos
 
 ```bash
-rm -rf ~/Library/Caches/huggingface/hub/models--mlx-community--whisper-large-v3-turbo-asr-fp16
-rm -rf ~/Library/Caches/huggingface/hub/models--mlx-community--Qwen3-TTS-12Hz-1.7B-VoiceDesign-8bit
+rm -rf ~/.cache/huggingface/hub/models--mlx-community--whisper-large-v3-turbo-asr-fp16
+rm -rf ~/.cache/huggingface/hub/models--mlx-community--Kokoro-82M-bf16
 ```
 
 ## Trocar LLM
@@ -175,7 +176,8 @@ Edite `Config/config.json` → `llm.model` e reinicie o backend. O endpoint
 
 ## Trocar TTS
 
-Edite `Config/config.json` → `tts.model`, `tts.language` e `tts.instruct`.
+Edite `Config/config.json` → `tts.model`, `tts.voice` e `tts.language`. As vozes
+brasileiras incluídas são `pm_santa`, `pm_alex` e `pf_dora`.
 
 ## Benchmark
 
@@ -188,7 +190,7 @@ local já aquecida. Veja `Benchmarks/*.json`.
 | STT Whisper (10 s) | RTF 0.06 |
 | STT Whisper (30 s) | RTF 0.02 |
 | LLM Qwen 3.5 9B (warm) | 41.8 tok/s, TTFT 0.316 s |
-| TTS Qwen3-TTS pt-BR (warm) | RTF 0.267; 9.68 s de áudio em 2.58 s; pico cold 6.13 GB |
+| TTS Kokoro Santa pt-BR (warm) | primeiro áudio em 0.253 s; RTF 0.040; 5.83 s de áudio em 0.234 s |
 | End-to-end | rode novamente após a troca da LLM |
 
 Para re-medir:
@@ -216,5 +218,5 @@ Wake word, ferramentas (tools), HomePod/AirPlay, visão, RAG, Home Assistant.
 
 ## Licença dos modelos
 
-Os modelos podem ter licenças próprias. O Qwen3-TTS é Apache 2.0; verifique os
-model cards antes de redistribuir pesos ou vozes geradas.
+Os modelos podem ter licenças próprias. O Kokoro é Apache 2.0; verifique os model
+cards antes de redistribuir pesos ou vozes geradas.

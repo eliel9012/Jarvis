@@ -29,7 +29,7 @@ final class ModelManager: ObservableObject {
         let candidates: [(String, String, ModelStatus.Kind)] = [
             ("qwen/qwen3.5-9b", "Qwen 3.5 9B MLX 4-bit", .llm),
             ("mlx-community/whisper-large-v3-turbo-asr-fp16", "Whisper Large v3 Turbo", .stt),
-            ("mlx-community/Qwen3-TTS-12Hz-1.7B-VoiceDesign-8bit", "Qwen3-TTS 1.7B pt-BR 8-bit", .tts),
+            ("mlx-community/Kokoro-82M-bf16", "Kokoro Santa pt-BR", .tts),
         ]
         models = candidates.map { id, name, kind in
             let installed = modelInstalled(id)

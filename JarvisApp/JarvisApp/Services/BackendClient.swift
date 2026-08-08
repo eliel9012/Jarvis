@@ -115,6 +115,76 @@ struct BackendClient {
         return try await postJSON("tts", body: body)
     }
 
+    func ttsStream(
+        text: String,
+        model: String? = nil,
+        speed: Double = 1.0,
+        refAudio: String? = nil,
+        refText: String? = nil
+    ) -> AsyncThrowingStream<TTSStreamEvent, Error> {
+        var request = URLRequest(url: baseURL.appendingPathComponent("tts/stream"))
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        var body: [String: Any] = ["text": text, "speed": speed]
+        if let model { body["model"] = model }
+        if let refAudio { body["ref_audio"] = refAudio }
+        if let refText { body["ref_text"] = refText }
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+
+        return AsyncThrowingStream { continuation in
+            let task = Task {
+                do {
+                    let (bytes, response) = try await session.bytes(for: request)
+                    guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+                        throw BackendError.httpStatus(
+                            code: (response as? HTTPURLResponse)?.statusCode ?? -1,
+                            detail: nil
+                        )
+                    }
+                    for try await line in bytes.lines {
+                        try Task.checkCancellation()
+                        guard !line.isEmpty else { continue }
+                        let payload = try JSONDecoder().decode(
+                            TTSStreamPayload.self,
+                            from: Data(line.utf8)
+                        )
+                        switch payload.type {
+                        case "ready":
+                            continuation.yield(.ready(sampleRate: payload.sample_rate ?? 24_000))
+                        case "audio":
+                            guard let encoded = payload.pcm_s16le,
+                                  let data = Data(base64Encoded: encoded) else {
+                                throw BackendError.invalidStream("Bloco PCM inválido")
+                            }
+                            continuation.yield(
+                                .audio(
+                                    sampleRate: payload.sample_rate ?? 24_000,
+                                    pcmS16LE: data
+                                )
+                            )
+                        case "done":
+                            continuation.yield(
+                                .done(
+                                    audioDuration: payload.audio_duration_s,
+                                    total: payload.total_s,
+                                    rtf: payload.rtf
+                                )
+                            )
+                        case "error":
+                            throw BackendError.invalidStream(payload.detail ?? "TTS falhou")
+                        default:
+                            continue
+                        }
+                    }
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+            continuation.onTermination = { _ in task.cancel() }
+        }
+    }
+
     func conversation(file: URL, mode: String = "quality", speed: Double = 1.0) async throws -> ConversationResponse {
         try await multipart("conversation", file: file, fields: ["mode": mode, "speed": String(speed)])
     }
@@ -126,11 +196,24 @@ struct BackendClient {
 
 enum BackendError: LocalizedError {
     case httpStatus(code: Int, detail: String?)
+    case invalidStream(String)
 
     var errorDescription: String? {
         switch self {
         case .httpStatus(let code, let detail):
             return "Backend respondeu com status \(code)\(detail.map { ": \($0)" } ?? "")"
+        case .invalidStream(let detail):
+            return detail
         }
     }
+}
+
+private struct TTSStreamPayload: Decodable {
+    let type: String
+    let sample_rate: Double?
+    let pcm_s16le: String?
+    let audio_duration_s: Double?
+    let total_s: Double?
+    let rtf: Double?
+    let detail: String?
 }

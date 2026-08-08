@@ -1,15 +1,16 @@
 {
-  "model": "mlx-community/Qwen3-TTS-12Hz-1.7B-VoiceDesign-8bit",
-  "language": "Portuguese",
-  "voice": "homem brasileiro adulto, barítono grave e encorpado",
-  "text": "Olá! Eu sou o Jarvis. Esta é a minha nova voz masculina brasileira, mais grave, natural e confiante.",
-  "audio_duration_s": 9.68,
-  "total_s_warm": 2.582,
-  "rtf_warm": 0.267,
-  "generation_speed_x": 3.75,
-  "peak_memory_gb_cold_run": 6.13,
-  "disk_size_gb": 2.9,
+  "timestamp": 1786198960,
+  "model": "mlx-community/Kokoro-82M-bf16",
+  "language": "pt-br",
+  "voice": "pm_santa",
+  "text": "Bom dia. Eu sou o Jarvis. Estou pronto para ajudar você com clareza, rapidez e discrição.",
+  "first_audio_s_warm": 0.253,
+  "audio_duration_s": 5.825,
+  "total_s_warm": 0.234,
+  "rtf_warm": 0.04,
+  "generation_speed_x": 24.89,
+  "disk_size_mb": 372,
   "sample_rate_hz": 24000,
   "channels": 1,
-  "output": "/Users/eliel/Developer/Jarvis/Audio/output/1786190015944394000.wav"
+  "transport": "NDJSON com PCM16; nenhum WAV criado"
 }
