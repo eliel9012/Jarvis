@@ -1,0 +1,24 @@
+{
+  "timestamp": 1786153784.178151,
+  "backend": "http://127.0.0.1:1234/v1",
+  "results": [
+    {
+      "model": "qwen/qwen3.6-35b-a3b",
+      "prompt_tokens": null,
+      "generated_tokens": 81,
+      "ttft_s": 0.544,
+      "total_s": 1.796,
+      "gen_tokens_per_s": 45.09,
+      "response": "Here's a thinking process:\n\n1.  **Analyze User Input:**\n   - User says: \"Qual é o estado do sistema?\" (What is the syste"
+    },
+    {
+      "model": "qwen/qwen3.5-9b",
+      "prompt_tokens": null,
+      "generated_tokens": 56,
+      "ttft_s": 6.464,
+      "total_s": 8.213,
+      "gen_tokens_per_s": 6.82,
+      "response": "Thinking Process:\n\n1.  **Analyze the Request:**\n    *   **Persona:** Jarvis (Iron Man's AI assistant).\n    *   **Task:**"
+    }
+  ]
+}
