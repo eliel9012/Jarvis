@@ -20,7 +20,6 @@ import unicodedata
 import uuid
 from pathlib import Path
 
-import httpx
 import numpy as np
 import soundfile as sf
 import uvicorn
@@ -28,6 +27,8 @@ from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
+
+from local_llm import LocalLLMEngine
 
 CONFIG_PATH = Path(__file__).resolve().parent.parent.parent / "Config" / "config.json"
 PROJECT_ROOT = CONFIG_PATH.parent.parent
@@ -52,6 +53,9 @@ app.add_middleware(
 )
 
 _stt_model = None
+_llm_engine = None
+_llm_warmed = False
+_llm_warmup_error = None
 _tts_model = None
 _tts_model_id = None
 _tts_warmed = False
@@ -63,9 +67,6 @@ _tts_warmup_error = None
 _pipeline_lock = threading.Lock()
 _tts_lock = threading.Lock()
 
-HTTP_TIMEOUT = httpx.Timeout(600.0, connect=10.0)
-
-
 def load_stt():
     global _stt_model
     if _stt_model is None:
@@ -74,6 +75,19 @@ def load_stt():
         print(f"[stt] carregando {STT_CFG['model']} ...")
         _stt_model = load_stt_model(model_path=STT_CFG["model"])
     return _stt_model
+
+
+def configured_llm_path() -> Path:
+    value = Path(os.path.expanduser(LLM["model_path"]))
+    return value if value.is_absolute() else PROJECT_ROOT / value
+
+
+def load_llm() -> LocalLLMEngine:
+    global _llm_engine
+    if _llm_engine is None:
+        _llm_engine = LocalLLMEngine(configured_llm_path())
+    _llm_engine.load()
+    return _llm_engine
 
 
 def load_tts(model_id: str):
@@ -598,9 +612,31 @@ def warm_tts_streaming() -> None:
             decoder.reset_streaming_state()
 
 
+def warm_llm() -> None:
+    """Carrega pesos e compila os kernels antes da primeira conversa."""
+    global _llm_warmed, _llm_warmup_error
+    try:
+        with _pipeline_lock:
+            load_llm().generate(
+                [{"role": "user", "content": "Responda somente: pronto."}],
+                max_tokens=8,
+                temperature=0.0,
+            )
+            _llm_warmed = True
+            print("[llm] Qwen local aquecido")
+    except Exception as error:
+        _llm_warmup_error = str(error)
+        print(f"[llm] falha no aquecimento: {error}")
+
+
+def warm_local_models() -> None:
+    warm_llm()
+    warm_tts_streaming()
+
+
 @app.on_event("startup")
-def schedule_tts_warmup() -> None:
-    threading.Thread(target=warm_tts_streaming, daemon=True).start()
+def schedule_model_warmup() -> None:
+    threading.Thread(target=warm_local_models, daemon=True).start()
 
 
 class ChatMessage(BaseModel):
@@ -656,49 +692,60 @@ class ConversationStore:
 store = ConversationStore()
 
 
-def chat_llm(messages: list[dict], model: str | None, max_tokens: int | None, temperature: float | None) -> dict:
-    url = f"{LLM['base_url']}/chat/completions"
-    payload = {
-        "model": model or LLM_MODEL,
-        "messages": messages,
-        "max_tokens": max_tokens or LLM.get("max_tokens", 1024),
-        "temperature": temperature if temperature is not None else LLM.get("temperature", 0.7),
-        "reasoning_effort": LLM.get("reasoning_effort", "none"),
-        "stream": False,
-    }
+def with_system_prompt(messages: list[dict]) -> list[dict]:
+    """Mantém o prompt local como primeira instrução, inclusive no endpoint /chat."""
+    conversation = [
+        message for message in messages if message.get("role") != "system"
+    ]
+    return [{"role": "system", "content": SYSTEM_PROMPT}, *conversation]
+
+
+def chat_llm(
+    messages: list[dict],
+    model: str | None,
+    max_tokens: int | None,
+    temperature: float | None,
+) -> dict:
+    if model and model != LLM_MODEL:
+        raise HTTPException(400, f"Modelo não disponível: {model}")
     started = time.perf_counter()
     try:
-        with httpx.Client(timeout=HTTP_TIMEOUT) as client:
-            r = client.post(url, json=payload)
-            r.raise_for_status()
-            data = r.json()
-    except httpx.HTTPError as e:
-        raise HTTPException(502, f"LLM indisponível: {e}")
+        result = load_llm().generate(
+            with_system_prompt(messages),
+            max_tokens=max_tokens or LLM.get("max_tokens", 512),
+            temperature=(
+                temperature
+                if temperature is not None
+                else LLM.get("temperature", 0.5)
+            ),
+        )
+    except HTTPException:
+        raise
+    except Exception as error:
+        raise HTTPException(500, f"Qwen local falhou: {error}")
     latency = time.perf_counter() - started
-    msg = data["choices"][0]["message"]
-    content = msg.get("content") or ""
-    reasoning = msg.get("reasoning_content")
     return {
-        "content": content.strip(),
-        "reasoning": (reasoning or "").strip(),
+        "content": result["content"],
+        "reasoning": result["reasoning"],
         "latency_s": round(latency, 3),
-        "usage": data.get("usage"),
+        "usage": result["usage"],
     }
 
 
 @app.get("/health")
 def health():
-    llm_ok = False
-    try:
-        with httpx.Client(timeout=5.0) as client:
-            r = client.get(f"{LLM['base_url']}/models")
-            llm_ok = r.status_code == 200
-    except Exception:
-        pass
+    engine = _llm_engine or LocalLLMEngine(configured_llm_path())
+    llm_ok = engine.available and _llm_warmup_error is None
     return {
         "status": "ok" if llm_ok else "degraded",
         "local": True,
-        "llm": {"online": llm_ok, "base_url": LLM["base_url"]},
+        "llm": {
+            "online": llm_ok,
+            "base_url": "local://mlx-lm",
+            "loaded": engine.loaded,
+            "warmed": _llm_warmed,
+            "warmup_error": _llm_warmup_error,
+        },
         "stt": {"model": STT_CFG["model"], "loaded": _stt_model is not None},
         "tts": {
             "model": TTS_CFG["model"],
@@ -713,16 +760,10 @@ def health():
 
 @app.get("/models")
 def models():
-    try:
-        with httpx.Client(timeout=5.0) as client:
-            r = client.get(f"{LLM['base_url']}/models")
-            llm_models = r.json().get("data", []) if r.status_code == 200 else []
-    except Exception:
-        llm_models = []
     return {
         "llm": {
             "model": LLM_MODEL,
-            "available": [m.get("id") for m in llm_models],
+            "available": [LLM_MODEL] if configured_llm_path().exists() else [],
         },
         "stt": STT_CFG["model"],
         "tts": {

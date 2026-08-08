@@ -1,85 +1,65 @@
-"""Benchmark do LLM local via API OpenAI-compatible (127.0.0.1:1234)."""
+"""Benchmark do Qwen carregado diretamente pelo MLX-LM."""
+
 import json
-import time
 import sys
+import time
+from pathlib import Path
 
-import httpx
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(PROJECT_ROOT / "Backend" / "api"))
 
-BASE_URL = "http://127.0.0.1:1234/v1"
-MODEL = "qwen/qwen3.5-9b"
-SYSTEM_PROMPT = (
-    "Você é Jarvis, um assistente pessoal local. "
-    "Responda em português brasileiro, de forma natural e concisa. "
-    "Apresente-se em uma frase."
-)
+from local_llm import LocalLLMEngine  # noqa: E402
+
+CONFIG = json.loads((PROJECT_ROOT / "Config" / "config.json").read_text())
+SYSTEM_PROMPT = (PROJECT_ROOT / "Config" / "system_prompt.txt").read_text().strip()
+LLM_CONFIG = CONFIG["llm"]
+MODEL_PATH = PROJECT_ROOT / LLM_CONFIG["model_path"]
 
 
-def benchmark(model: str, prompt: str, max_tokens: int = 128) -> dict:
-    url = f"{BASE_URL}/chat/completions"
-    payload = {
-        "model": model,
-        "messages": [
+def benchmark(engine: LocalLLMEngine, prompt: str, max_tokens: int = 128) -> dict:
+    started = time.perf_counter()
+    result = engine.generate(
+        [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": prompt},
         ],
-        "max_tokens": max_tokens,
-        "reasoning_effort": "none",
-        "stream": True,
-        "stream_options": {"include_usage": True},
-    }
-    started = time.perf_counter()
-    first_token_at = None
-    chunks = 0
-    text = []
-    usage = None
-    with httpx.Client(timeout=600) as client:
-        with client.stream("POST", url, json=payload) as resp:
-            resp.raise_for_status()
-            for line in resp.iter_lines():
-                if not line or not line.startswith("data:"):
-                    continue
-                data = line[5:].strip()
-                if data == "[DONE]":
-                    break
-                obj = json.loads(data)
-                choices = obj.get("choices") or []
-                if first_token_at is None and choices:
-                    first_token_at = time.perf_counter()
-                if choices:
-                    chunks += 1
-                    delta = choices[0].get("delta", {})
-                    piece = delta.get("content") or delta.get("reasoning_content")
-                    if piece:
-                        text.append(piece)
-                if "usage" in obj:
-                    usage = obj["usage"]
+        max_tokens=max_tokens,
+        temperature=0.0,
+    )
     total = time.perf_counter() - started
-    ttft = first_token_at - started if first_token_at else None
-    gen_tokens = len("".join(text).split()) if text else 0
-    if usage and usage.get("completion_tokens"):
-        gen_tokens = usage["completion_tokens"]
+    usage = result["usage"] or {}
     return {
-        "model": model,
-        "prompt_tokens": usage.get("prompt_tokens", 0) if usage else None,
-        "generated_tokens": gen_tokens,
-        "ttft_s": round(ttft, 3) if ttft else None,
+        "model": LLM_CONFIG["model"],
+        "provider": "mlx_lm",
+        "prompt_tokens": usage.get("prompt_tokens"),
+        "generated_tokens": usage.get("completion_tokens"),
         "total_s": round(total, 3),
-        "gen_tokens_per_s": round(gen_tokens / total, 2) if total else None,
-        "response": "".join(text)[:120],
+        "gen_tokens_per_s": usage.get("generation_tokens_per_second"),
+        "peak_memory_gb": usage.get("peak_memory_gb"),
+        "response": result["content"],
     }
 
 
-def main():
+def main() -> None:
+    engine = LocalLLMEngine(MODEL_PATH)
     results = []
-    for model in sys.argv[1:] or [MODEL]:
-        print(f"\n>>> {model}", flush=True)
-        print("cold start (load, se aplicável)...", flush=True)
-        r = benchmark(model, "Qual é o estado do sistema?")
-        results.append(r)
-        print(json.dumps(r, ensure_ascii=False, indent=2))
-    out = {"timestamp": time.time(), "backend": BASE_URL, "results": results}
-    with open("../../Benchmarks/llm.json", "w") as f:
-        json.dump(out, f, ensure_ascii=False, indent=2)
+    for label, prompt in (
+        ("cold", "Qual é o estado do sistema?"),
+        ("warm", "Resuma em uma frase o que você consegue fazer."),
+    ):
+        print(f"\n>>> {label}", flush=True)
+        result = benchmark(engine, prompt)
+        results.append({"run": label, **result})
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+
+    output = {
+        "timestamp": time.time(),
+        "backend": "mlx_lm_in_process",
+        "results": results,
+    }
+    (PROJECT_ROOT / "Benchmarks" / "llm.json").write_text(
+        json.dumps(output, ensure_ascii=False, indent=2)
+    )
 
 
 if __name__ == "__main__":
