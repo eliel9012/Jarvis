@@ -8,6 +8,9 @@
 
 /* Begin PBXBuildFile section */
 		0A1B2C3D4E5F60718293A4B5 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1B2C3D4E5F60718293A4B5C6 /* Assets.xcassets */; };
+		70F78E96F166B7B459F9E398 /* WhisperKit in Frameworks */ = {isa = PBXBuildFile; productRef = A854DF81B2BC729CD773FFEE /* WhisperKit */; };
+		1F5FBD647FD2183E7A7E8C4C /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = 70C93D08402A7493E6BFCF5D /* MLXLLM */; };
+		06D7984FF52302219D7D3F75 /* MLXLMCommon in Frameworks */ = {isa = PBXBuildFile; productRef = 33872749FEA61D860D7AD73F /* MLXLMCommon */; };
 		1AD0E17AD4526DFCBFF08356 /* AudioPlayerManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98CC8BF682C07E2DCDEEA5CB /* AudioPlayerManager.swift */; };
 		1C626597AD3F45A52FA5E6B9 /* WaveformView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D8B87E26D6D396AF6B887C6 /* WaveformView.swift */; };
 		21111DFD651BF7DE4678D5FF /* ModelManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FE40D2D57908B12E4E11D81 /* ModelManager.swift */; };
@@ -41,8 +44,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		1B2C3D4E5F60718293A4B5C6 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		0D8B87E26D6D396AF6B887C6 /* WaveformView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaveformView.swift; sourceTree = "<group>"; };
+		1B2C3D4E5F60718293A4B5C6 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		1E3C8BC10120DA2D701B447F /* ModelParsingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelParsingTests.swift; sourceTree = "<group>"; };
 		2AF10B991F6600D17760B644 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		2DAB014AB699D0A3AD563495 /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
@@ -52,7 +55,7 @@
 		4DDCD02E4DD9875163486737 /* LaunchAtLogin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLogin.swift; sourceTree = "<group>"; };
 		562041605C99AA025C844E3A /* StateTransitionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StateTransitionTests.swift; sourceTree = "<group>"; };
 		5E703261AB1E3D496987AC24 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
-		6931A58F122A71990D09EF46 /* JarvisApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = JarvisApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		6931A58F122A71990D09EF46 /* JarvisApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = JarvisApp.app; path = Jarvis.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7230D595CF843FE3F523A902 /* BackendClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackendClientTests.swift; sourceTree = "<group>"; };
 		7FE40D2D57908B12E4E11D81 /* ModelManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelManager.swift; sourceTree = "<group>"; };
 		91BA6A3DE8DE3DFAF782A879 /* BackendClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackendClient.swift; sourceTree = "<group>"; };
@@ -65,6 +68,19 @@
 		E6BCAD66384C93E09227E121 /* HistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryStore.swift; sourceTree = "<group>"; };
 		EADD266129CB86D93348012B /* BackendManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackendManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		F5116716A965704E1633A160 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				70F78E96F166B7B459F9E398 /* WhisperKit in Frameworks */,
+				1F5FBD647FD2183E7A7E8C4C /* MLXLLM in Frameworks */,
+				06D7984FF52302219D7D3F75 /* MLXLMCommon in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		08FED5B7DD0903F841695517 /* JarvisApp */ = {
@@ -160,6 +176,7 @@
 			buildConfigurationList = F0EBA81C0F5F79EA2F31CADD /* Build configuration list for PBXNativeTarget "JarvisApp" */;
 			buildPhases = (
 				6E8423563D0FD4F8B7DD421F /* Sources */,
+				F5116716A965704E1633A160 /* Frameworks */,
 				7A8B9C0D1E2F30415263748A /* Resources */,
 			);
 			buildRules = (
@@ -168,6 +185,9 @@
 			);
 			name = JarvisApp;
 			packageProductDependencies = (
+				A854DF81B2BC729CD773FFEE /* WhisperKit */,
+				70C93D08402A7493E6BFCF5D /* MLXLLM */,
+				33872749FEA61D860D7AD73F /* MLXLMCommon */,
 			);
 			productName = JarvisApp;
 			productReference = 6931A58F122A71990D09EF46 /* JarvisApp.app */;
@@ -214,6 +234,10 @@
 			);
 			mainGroup = FAB52A8BA94ED53024677170;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				F7B6A07C3026E98A00DAECF7 /* XCRemoteSwiftPackageReference "WhisperKit" */,
+				F7B6A07D3026E9BB00DAECF7 /* XCRemoteSwiftPackageReference "mlx-swift-examples" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 241DC7A9A2CF5BC2D04B1BB2 /* Products */;
 			projectDirPath = "";
@@ -526,6 +550,43 @@
 			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		F7B6A07C3026E98A00DAECF7 /* XCRemoteSwiftPackageReference "WhisperKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/argmaxinc/WhisperKit";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
+		F7B6A07D3026E9BB00DAECF7 /* XCRemoteSwiftPackageReference "mlx-swift-examples" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/ml-explore/mlx-swift-examples";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.29.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		A854DF81B2BC729CD773FFEE /* WhisperKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F7B6A07C3026E98A00DAECF7 /* XCRemoteSwiftPackageReference "WhisperKit" */;
+			productName = WhisperKit;
+		};
+		70C93D08402A7493E6BFCF5D /* MLXLLM */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F7B6A07D3026E9BB00DAECF7 /* XCRemoteSwiftPackageReference "mlx-swift-examples" */;
+			productName = MLXLLM;
+		};
+		33872749FEA61D860D7AD73F /* MLXLMCommon */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F7B6A07D3026E9BB00DAECF7 /* XCRemoteSwiftPackageReference "mlx-swift-examples" */;
+			productName = MLXLMCommon;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 7DB0DAB8DB97C1CD818BB48F /* Project object */;
 }
