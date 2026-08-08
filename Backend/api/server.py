@@ -8,9 +8,9 @@ Endpoints:
   POST /tts          {text, speed, ref_audio?, ref_text?}
   POST /conversation (upload wav -> STT -> LLM -> TTS)
 """
-import glob
 import json
 import os
+import re
 import shutil
 import threading
 import time
@@ -18,6 +18,7 @@ import uuid
 from pathlib import Path
 
 import httpx
+import numpy as np
 import soundfile as sf
 import uvicorn
 from fastapi import FastAPI, File, HTTPException, UploadFile
@@ -41,7 +42,7 @@ SYSTEM_PROMPT = "Você é Jarvis, um assistente pessoal local."
 if SYSTEM_PROMPT_PATH.exists():
     SYSTEM_PROMPT = SYSTEM_PROMPT_PATH.read_text().strip()
 
-app = FastAPI(title="Jarvis Local Backend", version="0.1.0")
+app = FastAPI(title="Jarvis Local Backend", version="0.1.1")
 app.add_middleware(
     CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"]
 )
@@ -110,6 +111,140 @@ def run_stt(audio_path: str) -> dict:
     }
 
 
+def normalize_tts_text(text: str) -> str:
+    """Remove marcação que não deve ser pronunciada e compacta espaços."""
+    text = re.sub(r"```(?:\w+)?\s*(.*?)```", r"\1", text, flags=re.DOTALL)
+    text = re.sub(r"\[([^\]]+)]\([^)]+\)", r"\1", text)
+    text = re.sub(r"^\s{0,3}(?:#{1,6}|[-+*])\s+", "", text, flags=re.MULTILINE)
+    text = re.sub(r"[`*_~>]", "", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def split_tts_text(text: str, max_chars: int = 160) -> list[str]:
+    """Quebra em frases curtas; frases grandes são divididas por palavras."""
+    cleaned = normalize_tts_text(text)
+    if not cleaned:
+        return []
+
+    units = re.split(r"(?<=[.!?…;:])\s+", cleaned)
+    pieces: list[str] = []
+    for unit in units:
+        words = unit.split()
+        current = ""
+        for word in words:
+            candidate = f"{current} {word}".strip()
+            if current and len(candidate) > max_chars:
+                pieces.append(current)
+                current = word
+            else:
+                current = candidate
+        if current:
+            pieces.append(current)
+
+    chunks: list[str] = []
+    current = ""
+    for piece in pieces:
+        candidate = f"{current} {piece}".strip()
+        if current and len(candidate) > max_chars:
+            chunks.append(current)
+            current = piece
+        else:
+            current = candidate
+    if current:
+        chunks.append(current)
+    return chunks
+
+
+def _generate_tts_chunk(
+    generate_audio,
+    model,
+    text: str,
+    out_dir: Path,
+    prefix: str,
+    speed: float,
+    ref_audio,
+    ref_text,
+    depth: int = 0,
+) -> list[Path]:
+    # Qwen3-TTS produz cerca de 12,5 tokens de áudio por segundo. O limite
+    # dinâmico impede o loop de 1.200 tokens/96 s observado em textos longos.
+    max_tokens = min(260, max(100, int(len(text) * 1.45)))
+    output = out_dir / f"{prefix}.wav"
+    generate_audio(
+        text=text,
+        model=model,
+        output_path=str(out_dir),
+        file_prefix=prefix,
+        audio_format="wav",
+        join_audio=True,
+        verbose=False,
+        max_tokens=max_tokens,
+        temperature=0.65,
+        speed=speed,
+        ref_audio=ref_audio,
+        ref_text=ref_text,
+        lang_code=TTS_CFG.get("language", "Portuguese"),
+        instruct=TTS_CFG.get("instruct"),
+    )
+    if not output.exists():
+        raise HTTPException(500, "TTS não gerou áudio")
+
+    duration = sf.info(output).duration
+    token_limit_duration = max_tokens / 12.5
+    hit_token_limit = duration >= token_limit_duration * 0.92
+    if hit_token_limit and len(text) > 48 and depth < 2:
+        output.unlink(missing_ok=True)
+        smaller = split_tts_text(text, max_chars=max(48, len(text) // 2))
+        if len(smaller) > 1:
+            generated: list[Path] = []
+            for index, chunk in enumerate(smaller):
+                generated.extend(
+                    _generate_tts_chunk(
+                        generate_audio,
+                        model,
+                        chunk,
+                        out_dir,
+                        f"{prefix}_{index:02d}",
+                        speed,
+                        ref_audio,
+                        ref_text,
+                        depth + 1,
+                    )
+                )
+            return generated
+    if hit_token_limit:
+        output.unlink(missing_ok=True)
+        raise HTTPException(500, "TTS atingiu o limite de geração antes de concluir a fala")
+    return [output]
+
+
+def _join_and_normalize_audio(paths: list[Path], destination: Path) -> float:
+    audio_parts: list[np.ndarray] = []
+    sample_rate: int | None = None
+    for path in paths:
+        audio, rate = sf.read(path, dtype="float32", always_2d=True)
+        if sample_rate is None:
+            sample_rate = rate
+        elif rate != sample_rate:
+            raise HTTPException(500, "TTS gerou blocos com taxas de amostragem diferentes")
+        if audio_parts:
+            audio_parts.append(np.zeros((int(rate * 0.12), audio.shape[1]), dtype=np.float32))
+        audio_parts.append(audio)
+
+    if not audio_parts or sample_rate is None:
+        raise HTTPException(500, "TTS não gerou áudio utilizável")
+    joined = np.concatenate(audio_parts, axis=0)
+    rms = float(np.sqrt(np.mean(np.square(joined))))
+    if rms > 1e-5:
+        gain = min(8.0, 0.10 / rms)
+        joined *= gain
+        peak = float(np.max(np.abs(joined)))
+        if peak > 0.95:
+            joined *= 0.95 / peak
+    sf.write(destination, joined, sample_rate, subtype="PCM_16")
+    return len(joined) / sample_rate
+
+
 def run_tts(text: str, model_id: str, speed: float = 1.0, ref_audio=None, ref_text=None) -> dict:
     from mlx_audio.tts.generate import generate_audio
 
@@ -118,32 +253,37 @@ def run_tts(text: str, model_id: str, speed: float = 1.0, ref_audio=None, ref_te
     out_dir.mkdir(parents=True, exist_ok=True)
     prefix = f"{time.time_ns()}"
     started = time.perf_counter()
-    generate_audio(
-        text=text,
-        model=model,
-        output_path=str(out_dir),
-        file_prefix=prefix,
-        audio_format="wav",
-        verbose=False,
-        speed=speed,
-        ref_audio=ref_audio,
-        ref_text=ref_text,
-        lang_code=TTS_CFG.get("language", "Portuguese"),
-        instruct=TTS_CFG.get("instruct"),
-    )
-    total = time.perf_counter() - started
-    generated = glob.glob(str(out_dir / f"{prefix}_*.wav")) or glob.glob(str(out_dir / "audio_*.wav"))
-    if not generated:
-        raise HTTPException(500, "TTS não gerou áudio")
     final = OUTPUT_DIR / f"{prefix}.wav"
-    shutil.move(generated[0], final)
-    info = sf.info(final)
+    chunks = split_tts_text(text)
+    if not chunks:
+        raise HTTPException(400, "Texto vazio para TTS")
+    generated: list[Path] = []
+    try:
+        for index, chunk in enumerate(chunks):
+            generated.extend(
+                _generate_tts_chunk(
+                    generate_audio,
+                    model,
+                    chunk,
+                    out_dir,
+                    f"{prefix}_{index:02d}",
+                    speed,
+                    ref_audio,
+                    ref_text,
+                )
+            )
+        duration = _join_and_normalize_audio(generated, final)
+    finally:
+        for path in generated:
+            path.unlink(missing_ok=True)
+    total = time.perf_counter() - started
     return {
         "text": text,
         "audio_path": str(final),
-        "audio_duration_s": round(info.duration, 2),
+        "audio_duration_s": round(duration, 2),
         "total_s": round(total, 3),
-        "rtf": round(total / info.duration, 3) if info.duration else None,
+        "rtf": round(total / duration, 3) if duration else None,
+        "chunks": len(chunks),
     }
 
 
