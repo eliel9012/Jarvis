@@ -8,7 +8,7 @@ final class AppSettings: ObservableObject {
     @AppStorage("speakResponses") var speakResponses = true
     @AppStorage("pushToTalk") var pushToTalk = false
     @AppStorage("hotkeyOptionSpace") var hotkeyOptionSpace = true
-    @AppStorage("llmMode") var llmModeRaw = LLMMode.quality.rawValue
+    @AppStorage("llmMode") var llmModeRaw = LLMMode.fast.rawValue
     @AppStorage("temperature") var temperature = 0.7
     @AppStorage("maxTokens") var maxTokens = 1024
     @AppStorage("contextSize") var contextSize = 70000
@@ -22,7 +22,7 @@ final class AppSettings: ObservableObject {
     @AppStorage("keepAudio") var keepAudio = false
 
     var llmMode: LLMMode {
-        get { LLMMode(rawValue: llmModeRaw) ?? .quality }
+        get { LLMMode(rawValue: llmModeRaw) ?? .fast }
         set { llmModeRaw = newValue.rawValue }
     }
 }
