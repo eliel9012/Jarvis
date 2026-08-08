@@ -12,6 +12,7 @@ import glob
 import json
 import os
 import shutil
+import threading
 import time
 import uuid
 from pathlib import Path
@@ -47,6 +48,13 @@ app.add_middleware(
 _stt_model = None
 _tts_model = None
 _tts_model_id = None
+
+# STT/LLM/TTS rodam sobre modelos MLX (GPU/Metal) globais e não são thread-safe.
+# /stt, /chat, /tts e /conversation agora rodam em threadpool (endpoints são `def`
+# síncronos, de propósito, pra não travar /health) — sem esse lock, duas requests
+# concorrentes corrompem/embaralham a saída do modelo (visto em produção: 5
+# transcrições da mesma frase saindo intercaladas). /health nunca usa esse lock.
+_pipeline_lock = threading.Lock()
 
 HTTP_TIMEOUT = httpx.Timeout(600.0, connect=10.0)
 
@@ -265,7 +273,8 @@ def stt(file: UploadFile = File(...)):
     with open(tmp, "wb") as f:
         shutil.copyfileobj(file.file, f)
     try:
-        return run_stt(str(tmp))
+        with _pipeline_lock:
+            return run_stt(str(tmp))
     except HTTPException:
         raise
     except Exception as e:
@@ -277,12 +286,13 @@ def stt(file: UploadFile = File(...)):
 @app.post("/chat")
 def chat(req: ChatRequest):
     try:
-        return chat_llm(
-            [m.model_dump() for m in req.messages] or store.messages(),
-            req.model,
-            req.max_tokens,
-            req.temperature,
-        )
+        with _pipeline_lock:
+            return chat_llm(
+                [m.model_dump() for m in req.messages] or store.messages(),
+                req.model,
+                req.max_tokens,
+                req.temperature,
+            )
     except HTTPException:
         raise
 
@@ -290,7 +300,8 @@ def chat(req: ChatRequest):
 @app.post("/tts")
 def tts(req: TTSRequest):
     model_id = req.model or TTS_CFG["quality_model"]
-    return run_tts(req.text, model_id, req.speed, req.ref_audio, req.ref_text)
+    with _pipeline_lock:
+        return run_tts(req.text, model_id, req.speed, req.ref_audio, req.ref_text)
 
 
 @app.post("/conversation")
@@ -301,16 +312,17 @@ def conversation(file: UploadFile = File(...), mode: str = "quality", speed: flo
         shutil.copyfileobj(file.file, f)
     t0 = time.perf_counter()
     try:
-        transcript = run_stt(str(tmp))
-        user_text = transcript["text"].strip()
-        if not user_text:
-            raise HTTPException(422, "Nenhuma fala detectada no áudio")
-        store.add(user_text, "")
-        messages = store.messages()
-        llm = chat_llm(messages, LLM["quality_model"] if mode == "quality" else LLM["fast_model"], None, None)
-        store.turns[-1]["content"] = llm["content"]
-        tts_model = TTS_CFG["quality_model"] if mode == "quality" else TTS_CFG["fast_model"]
-        audio = run_tts(llm["content"], tts_model, speed)
+        with _pipeline_lock:
+            transcript = run_stt(str(tmp))
+            user_text = transcript["text"].strip()
+            if not user_text:
+                raise HTTPException(422, "Nenhuma fala detectada no áudio")
+            store.add(user_text, "")
+            messages = store.messages()
+            llm = chat_llm(messages, LLM["quality_model"] if mode == "quality" else LLM["fast_model"], None, None)
+            store.turns[-1]["content"] = llm["content"]
+            tts_model = TTS_CFG["quality_model"] if mode == "quality" else TTS_CFG["fast_model"]
+            audio = run_tts(llm["content"], tts_model, speed)
         return {
             "transcript": user_text,
             "response": llm["content"],

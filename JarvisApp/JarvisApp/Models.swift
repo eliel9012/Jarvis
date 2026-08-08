@@ -11,12 +11,12 @@ enum JarvisState: Equatable {
 
     var label: String {
         switch self {
-        case .idle: return "Idle"
-        case .listening: return "Listening..."
-        case .transcribing: return "Transcribing..."
-        case .thinking: return "Thinking..."
-        case .speaking: return "Speaking..."
-        case .error(let message): return "Error: \(message)"
+        case .idle: return "Ocioso"
+        case .listening: return "Ouvindo..."
+        case .transcribing: return "Transcrevendo..."
+        case .thinking: return "Pensando..."
+        case .speaking: return "Falando..."
+        case .error(let message): return "Erro: \(message)"
         }
     }
 }
@@ -24,7 +24,7 @@ enum JarvisState: Equatable {
 extension BackendManager.Status {
     var label: String {
         switch self {
-        case .connecting: return "Connecting..."
+        case .connecting: return "Conectando..."
         case .online: return "Online"
         case .offline: return "Offline"
         }
@@ -45,8 +45,8 @@ enum LLMMode: String, CaseIterable, Identifiable {
     var id: String { rawValue }
     var label: String {
         switch self {
-        case .quality: return "Quality"
-        case .fast: return "Fast"
+        case .quality: return "Qualidade"
+        case .fast: return "Rápido"
         }
     }
 

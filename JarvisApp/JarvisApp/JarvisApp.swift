@@ -27,19 +27,19 @@ struct JarvisApp: App {
         .windowStyle(.hiddenTitleBar)
 
         MenuBarExtra {
-            Button("Open Jarvis") {
+            Button("Abrir Jarvis") {
                 NSApp.activate(ignoringOtherApps: true)
             }
-            Button("Start Listening") {
+            Button("Começar a Ouvir") {
                 viewModel.startListening()
             }
-            Button("Stop Speaking") {
+            Button("Parar de Falar") {
                 viewModel.stopEverything()
             }
             Divider()
             Text("Backend: \(viewModel.backendStatus.label)")
             Divider()
-            Button("Quit") {
+            Button("Sair") {
                 viewModel.stopEverything()
                 NSApplication.shared.terminate(nil)
             }

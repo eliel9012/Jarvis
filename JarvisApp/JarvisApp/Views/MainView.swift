@@ -31,6 +31,12 @@ struct MainView: View {
                     .foregroundStyle(.secondary)
                 if viewModel.state == .listening {
                     WaveformView(levels: viewModel.microphone.levels)
+                    Text(viewModel.microphone.liveTranscript.isEmpty ? " " : viewModel.microphone.liveTranscript)
+                        .font(.body)
+                        .foregroundStyle(.primary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 32)
+                        .lineLimit(3)
                 }
             }
 
@@ -57,7 +63,7 @@ struct MainView: View {
                 }
                 .buttonStyle(.borderedProminent)
 
-                Button("Stop Speaking") {
+                Button("Parar de Falar") {
                     viewModel.stopEverything()
                 }
                 .buttonStyle(.bordered)
@@ -76,7 +82,7 @@ struct MainView: View {
             .padding(.bottom, 10)
 
             HStack {
-                TextField("Ask Jarvis...", text: $textInput)
+                TextField("Pergunte ao Jarvis...", text: $textInput)
                     .textFieldStyle(.roundedBorder)
                     .onSubmit {
                         viewModel.sendText(textInput)

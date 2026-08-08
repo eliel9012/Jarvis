@@ -1,13 +1,18 @@
 @preconcurrency import AVFoundation
 import Foundation
+@preconcurrency import Speech
 
-/// Controla o microfone via AVFoundation: captura 16 kHz mono,
-/// fornece nível para waveform e faz VAD por RMS (600 ms de silêncio).
+/// Controla o microfone via AVFoundation: captura 16 kHz mono, fornece nível
+/// para waveform e roda transcrição ao vivo (só exibição) via Speech on-device
+/// enquanto grava. O áudio final ainda vai pro Whisper local no backend —
+/// a transcrição ao vivo aqui é só feedback visual, não a fonte da verdade.
+/// Parar de gravar é sempre manual (clique/hotkey), sem VAD automático.
 @MainActor
 final class MicrophoneManager: NSObject, ObservableObject {
     @Published private(set) var isRecording = false
     @Published private(set) var level: Float = 0
     @Published private(set) var levels: [Float] = []
+    @Published private(set) var liveTranscript = ""
 
     private var engine: AVAudioEngine?
     private var inputNode: AVAudioNode?
@@ -17,12 +22,12 @@ final class MicrophoneManager: NSObject, ObservableObject {
         commonFormat: .pcmFormatFloat32, sampleRate: 16000, channels: 1, interleaved: false
     )!
 
-    private var silenceSamples: Int64 = 0
-    private let autoStopEnabled = true
-    private let silenceSamplesForStop: Int64 = 9600 // 600 ms a 16 kHz
     private var outputFileURL: URL?
     private var isStopping = false
-    private var onAutoStop: (() -> Void)?
+
+    private let speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "pt-BR"))
+    private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
+    private var recognitionTask: SFSpeechRecognitionTask?
 
     func requestPermission() async -> Bool {
         await withCheckedContinuation { continuation in
@@ -32,20 +37,23 @@ final class MicrophoneManager: NSObject, ObservableObject {
         }
     }
 
-    func startRecording(onAutoStop: (() -> Void)? = nil) {
+    /// Permissão separada do Speech framework, só usada pra transcrição ao vivo (exibição).
+    func requestSpeechPermission() async -> Bool {
+        await withCheckedContinuation { continuation in
+            SFSpeechRecognizer.requestAuthorization { status in
+                continuation.resume(returning: status == .authorized)
+            }
+        }
+    }
+
+    func startRecording() {
         guard !isRecording else { return }
-        self.onAutoStop = onAutoStop
         isStopping = false
+        liveTranscript = ""
         do {
             let engine = AVAudioEngine()
             let input = engine.inputNode
             let hwFormat = input.outputFormat(forBus: 0)
-            guard let monoFormat = AVAudioFormat(
-                commonFormat: .pcmFormatFloat32,
-                sampleRate: hwFormat.sampleRate,
-                channels: 1,
-                interleaved: false
-            ) else { return }
 
             converter = AVAudioConverter(from: hwFormat, to: outputFormat)
             let dir = FileManager.default.temporaryDirectory
@@ -53,9 +61,11 @@ final class MicrophoneManager: NSObject, ObservableObject {
             audioFile = try AVAudioFile(forWriting: url, settings: outputFormat.settings)
             outputFileURL = url
 
+            startLiveTranscription(format: hwFormat)
+
             input.installTap(onBus: 0, bufferSize: 4096, format: nil) { [weak self] buffer, _ in
                 Task { @MainActor [weak self] in
-                    self?.process(buffer: buffer, monoFormat: monoFormat)
+                    self?.process(buffer: buffer)
                 }
             }
             inputNode = input
@@ -63,10 +73,25 @@ final class MicrophoneManager: NSObject, ObservableObject {
             try engine.start()
             self.engine = engine
             isRecording = true
-            silenceSamples = 0
         } catch {
             _ = stopRecording()
             print("[Microphone] erro ao iniciar: \(error)")
+        }
+    }
+
+    private func startLiveTranscription(format: AVAudioFormat) {
+        guard let speechRecognizer, speechRecognizer.isAvailable,
+              speechRecognizer.supportsOnDeviceRecognition else { return }
+        let request = SFSpeechAudioBufferRecognitionRequest()
+        request.shouldReportPartialResults = true
+        request.requiresOnDeviceRecognition = true
+        recognitionRequest = request
+        recognitionTask = speechRecognizer.recognitionTask(with: request) { [weak self] result, _ in
+            guard let result else { return }
+            let text = result.bestTranscription.formattedString
+            Task { @MainActor [weak self] in
+                self?.liveTranscript = text
+            }
         }
     }
 
@@ -81,11 +106,16 @@ final class MicrophoneManager: NSObject, ObservableObject {
         inputNode = nil
         converter = nil
         audioFile = nil
-        onAutoStop = nil
+        recognitionRequest?.endAudio()
+        recognitionRequest = nil
+        recognitionTask?.cancel()
+        recognitionTask = nil
         return outputFileURL
     }
 
-    private func process(buffer: AVAudioPCMBuffer, monoFormat: AVAudioFormat) {
+    private func process(buffer: AVAudioPCMBuffer) {
+        recognitionRequest?.append(buffer)
+
         guard let converter else { return }
         let converted = AVAudioPCMBuffer(pcmFormat: outputFormat, frameCapacity: AVAudioFrameCount(buffer.frameLength * 2))!
         var error: NSError?
@@ -110,16 +140,5 @@ final class MicrophoneManager: NSObject, ObservableObject {
         if levels.count > 60 { levels.removeFirst(levels.count - 60) }
 
         try? audioFile?.write(from: converted)
-
-        if rms < 0.02 {
-            silenceSamples += Int64(count)
-        } else {
-            silenceSamples = 0
-        }
-        if autoStopEnabled, silenceSamples >= silenceSamplesForStop, isRecording {
-            let cb = onAutoStop
-            _ = stopRecording()
-            cb?()
-        }
     }
 }

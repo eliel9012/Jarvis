@@ -18,7 +18,6 @@ final class AppSettings: ObservableObject {
     @AppStorage("refAudioPath") var refAudioPath = ""
     @AppStorage("refTranscript") var refTranscript = ""
     @AppStorage("language") var language = "pt"
-    @AppStorage("vadThreshold") var vadThreshold = 0.02
     @AppStorage("keepAudio") var keepAudio = false
 
     var llmMode: LLMMode {

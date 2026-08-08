@@ -57,10 +57,10 @@ final class JarvisViewModel: ObservableObject {
                 state = .error("Permissão de microfone negada")
                 return
             }
+            // Transcrição ao vivo é só um extra visual — sem essa permissão, segue sem ela.
+            _ = await microphone.requestSpeechPermission()
             state = .listening
-            microphone.startRecording { [weak self] in
-                self?.processCapture()
-            }
+            microphone.startRecording()
         }
     }
 
