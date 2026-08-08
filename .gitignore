@@ -1,0 +1,65 @@
+# macOS
+.DS_Store
+*.swp
+._*
+.AppleDouble
+
+# Xcode
+DerivedData/
+build/
+*.xcuserstate
+xcuserdata/
+*.xcscmblueprint
+*.xccheckout
+*.moved-aside
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtualenv
+.venv/
+venv/
+env/
+
+# Models (NUNCA commitar modelos grandes)
+Models/
+*.safetensors
+*.gguf
+*.mlmodel
+*.mlmodelc
+*.bin
+*.onnx
+
+# Áudio temporário
+Audio/input/
+Audio/output/
+Audio/references/
+*.wav
+*.mp3
+*.m4a
+*.flac
+!Benchmarks/**/*.json
+
+# Logs
+Logs/
+*.log
+
+# Credenciais
+.env
+*.env
+credentials.json
+secrets*
+
+# Cache Hugging Face
+.hf_cache/
+.cache/huggingface/
+.huggingface/
+
+# FastAPI / uvicorn
+*.pid
+*.sock
