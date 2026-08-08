@@ -259,7 +259,7 @@ def models():
 
 
 @app.post("/stt")
-async def stt(file: UploadFile = File(...)):
+def stt(file: UploadFile = File(...)):
     tmp = OUTPUT_DIR / f"in_{uuid.uuid4().hex}.wav"
     tmp.parent.mkdir(parents=True, exist_ok=True)
     with open(tmp, "wb") as f:
@@ -294,7 +294,7 @@ def tts(req: TTSRequest):
 
 
 @app.post("/conversation")
-async def conversation(file: UploadFile = File(...), mode: str = "quality", speed: float = 1.0):
+def conversation(file: UploadFile = File(...), mode: str = "quality", speed: float = 1.0):
     tmp = OUTPUT_DIR / f"in_{uuid.uuid4().hex}.wav"
     tmp.parent.mkdir(parents=True, exist_ok=True)
     with open(tmp, "wb") as f:

@@ -12,7 +12,7 @@ struct MainView: View {
                     .font(.system(size: 22, weight: .bold))
                 Spacer()
                 HStack(spacing: 6) {
-                    Circle().fill(viewModel.backendOnline ? Color.green : Color.red)
+                    Circle().fill(viewModel.backendStatus.color)
                         .frame(width: 8, height: 8)
                     Text("LOCAL")
                         .font(.caption.bold())

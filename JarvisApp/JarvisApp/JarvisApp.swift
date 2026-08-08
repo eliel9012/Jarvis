@@ -37,7 +37,7 @@ struct JarvisApp: App {
                 viewModel.stopEverything()
             }
             Divider()
-            Text(viewModel.backendOnline ? "Backend: Online" : "Backend: Offline")
+            Text("Backend: \(viewModel.backendStatus.label)")
             Divider()
             Button("Quit") {
                 viewModel.stopEverything()

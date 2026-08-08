@@ -21,6 +21,24 @@ enum JarvisState: Equatable {
     }
 }
 
+extension BackendManager.Status {
+    var label: String {
+        switch self {
+        case .connecting: return "Connecting..."
+        case .online: return "Online"
+        case .offline: return "Offline"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .connecting: return .yellow
+        case .online: return .green
+        case .offline: return .red
+        }
+    }
+}
+
 enum LLMMode: String, CaseIterable, Identifiable {
     case quality
     case fast

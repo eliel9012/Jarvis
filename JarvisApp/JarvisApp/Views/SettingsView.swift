@@ -144,8 +144,8 @@ private struct AdvancedTab: View {
     var body: some View {
         Form {
             LabeledContent("Backend status") {
-                Text(viewModel.backendOnline ? "Online" : "Offline")
-                    .foregroundStyle(viewModel.backendOnline ? .green : .red)
+                Text(viewModel.backendStatus.label)
+                    .foregroundStyle(viewModel.backendStatus.color)
             }
             LabeledContent("Backend") { Text("127.0.0.1:8765") }
             Button("Restart service") {

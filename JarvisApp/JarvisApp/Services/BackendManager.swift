@@ -4,9 +4,19 @@ import Foundation
 /// Detecta se já está ativo, inicia caso contrário, monitora e reinicia.
 @MainActor
 final class BackendManager: ObservableObject {
-    @Published private(set) var isRunning = false
+    enum Status: Equatable {
+        /// Ainda não confirmou saúde (boot inicial) ou está tentando reconectar após falhas.
+        case connecting
+        case online
+        /// Falha definitiva (ex: python do venv não encontrado) — reconectar não vai adiantar sozinho.
+        case offline
+    }
+
+    @Published private(set) var status: Status = .connecting
     @Published private(set) var lastError: String?
     @Published private(set) var startedByApp = false
+
+    var isRunning: Bool { status == .online }
 
     static let backendURL = URL(string: "http://127.0.0.1:8765")!
 
@@ -19,6 +29,11 @@ final class BackendManager: ObservableObject {
     private var lastStartAttempt: Date?
     /// Backend python carrega libs pesadas (transformers/scipy) — boot pode passar de 30s.
     private let startupGracePeriod: TimeInterval = 45
+    private var consecutiveFailures = 0
+    /// Uma request pesada (STT/LLM/TTS) pode segurar o event loop e derrubar
+    /// health checks isolados sem o backend estar de fato morto. Só age depois
+    /// de falhas seguidas (~15s), não numa falha isolada.
+    private let failuresBeforeAction = 3
 
     init(
         projectDir: URL = URL(fileURLWithPath: NSString(string: "~/Developer/Jarvis").expandingTildeInPath)
@@ -39,11 +54,7 @@ final class BackendManager: ObservableObject {
         monitorTask = Task { [weak self] in
             while !Task.isCancelled {
                 guard let self else { return }
-                let healthy = await self.isBackendHealthy()
-                self.isRunning = healthy
-                if !healthy {
-                    self.startBackendIfNeeded()
-                }
+                await self.checkNow()
                 try? await Task.sleep(nanoseconds: 5_000_000_000)
             }
         }
@@ -52,6 +63,23 @@ final class BackendManager: ObservableObject {
     func stopMonitoring() {
         monitorTask?.cancel()
         monitorTask = nil
+    }
+
+    /// Roda um health check imediatamente e atualiza `status`, fora do intervalo de 5s do loop.
+    func checkNow() async {
+        let healthy = await isBackendHealthy()
+        if healthy {
+            consecutiveFailures = 0
+            status = .online
+        } else {
+            consecutiveFailures += 1
+            // Só age depois de falhas seguidas — uma request pesada (STT/LLM/TTS)
+            // pode segurar o /health por um tempo sem o backend estar morto.
+            if consecutiveFailures >= failuresBeforeAction {
+                if status == .online { status = .connecting }
+                startBackendIfNeeded()
+            }
+        }
     }
 
     func isBackendHealthy() async -> Bool {
@@ -83,6 +111,7 @@ final class BackendManager: ObservableObject {
         let exists = FileManager.default.fileExists(atPath: pythonPath.path)
         guard exists else {
             lastError = "Backend Python não encontrado em \(pythonPath.path)"
+            status = .offline
             return
         }
         let proc = Process()
@@ -114,6 +143,7 @@ final class BackendManager: ObservableObject {
             print("[BackendManager] backend iniciado (pid \(proc.processIdentifier))")
         } catch {
             lastError = "Falha ao iniciar backend: \(error.localizedDescription)"
+            status = .offline
         }
     }
 
@@ -147,6 +177,7 @@ final class BackendManager: ObservableObject {
         process?.terminate()
         process = nil
         startedByApp = false
-        isRunning = false
+        status = .connecting
+        consecutiveFailures = 0
     }
 }

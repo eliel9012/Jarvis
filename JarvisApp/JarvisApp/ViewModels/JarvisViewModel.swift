@@ -1,3 +1,4 @@
+import Combine
 import Foundation
 import SwiftUI
 
@@ -6,8 +7,10 @@ import SwiftUI
 final class JarvisViewModel: ObservableObject {
     @Published var state: JarvisState = .idle
     @Published var messages: [ChatMessage] = []
-    @Published var backendOnline = false
+    @Published var backendStatus: BackendManager.Status = .connecting
     @Published var footerModels = "Qwen 3.6 35B • Fish S2 Pro • Whisper Turbo"
+
+    var backendOnline: Bool { backendStatus == .online }
 
     let settings = AppSettings()
     let microphone = MicrophoneManager()
@@ -18,11 +21,15 @@ final class JarvisViewModel: ObservableObject {
     let client = BackendClient.shared
 
     private var history: [ChatMessage] = []
+    private var cancellables = Set<AnyCancellable>()
 
     func start() {
+        backendManager.$status
+            .receive(on: DispatchQueue.main)
+            .assign(to: \.backendStatus, on: self)
+            .store(in: &cancellables)
         backendManager.startMonitoring()
         Task {
-            backendOnline = await backendManager.isBackendHealthy()
             if let config = try? JSONSerialization.jsonObject(
                 with: Data(contentsOf: configURL)
             ) as? [String: Any], let llm = config["llm"] as? [String: Any] {
@@ -156,7 +163,7 @@ final class JarvisViewModel: ObservableObject {
 
     func refreshBackendStatus() {
         Task {
-            backendOnline = await backendManager.isBackendHealthy()
+            await backendManager.checkNow()
         }
     }
 }
