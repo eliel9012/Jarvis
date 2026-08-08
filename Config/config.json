@@ -14,7 +14,7 @@
   "tts": {
     "provider": "kokoro_mlx",
     "model": "mlx-community/Kokoro-82M-bf16",
-    "voice": "pm_santa",
+    "voice": "pm_alex",
     "language": "pt-br",
     "sample_rate": 24000
   },

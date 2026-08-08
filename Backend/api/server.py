@@ -390,7 +390,7 @@ def run_kokoro_tts(text: str, model_id: str, speed: float = 1.0) -> dict:
     for chunk in chunks:
         result = model.generate(
             chunk,
-            voice=TTS_CFG.get("voice", "pm_santa"),
+            voice=TTS_CFG.get("voice", "pm_alex"),
             speed=speed,
             sample_rate=sample_rate,
             language=TTS_CFG.get("language", "pt-br"),
@@ -518,7 +518,7 @@ def stream_kokoro_audio(text: str, model_id: str, speed: float = 1.0):
             for chunk in chunks:
                 result = model.generate(
                     chunk,
-                    voice=TTS_CFG.get("voice", "pm_santa"),
+                    voice=TTS_CFG.get("voice", "pm_alex"),
                     speed=speed,
                     sample_rate=sample_rate,
                     language=TTS_CFG.get("language", "pt-br"),
@@ -565,7 +565,7 @@ def warm_tts_streaming() -> None:
             if is_kokoro_tts(TTS_CFG["model"]):
                 model.generate(
                     "Pronto.",
-                    voice=TTS_CFG.get("voice", "pm_santa"),
+                    voice=TTS_CFG.get("voice", "pm_alex"),
                     sample_rate=int(TTS_CFG.get("sample_rate", 24_000)),
                     language=TTS_CFG.get("language", "pt-br"),
                 )

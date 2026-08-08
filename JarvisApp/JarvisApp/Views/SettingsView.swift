@@ -80,7 +80,7 @@ private struct VoiceTab: View {
     var body: some View {
         Form {
             LabeledContent("Modelo") { Text("Kokoro 82M MLX") }
-            LabeledContent("Voz") { Text("Santa • Masculina • pt-BR") }
+            LabeledContent("Voz") { Text("Alex • Masculina • pt-BR") }
             LabeledContent("Idioma") { Text("Português do Brasil") }
             Slider(value: $settings.ttsSpeed, in: 0.5...2.0, step: 0.05) {
                 Text("Velocidade de fala: \(String(format: "%.2f", settings.ttsSpeed))x")
