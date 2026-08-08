@@ -71,12 +71,6 @@ struct MainView: View {
 
                 if viewModel.state == .listening {
                     WaveformView(levels: viewModel.microphone.levels)
-                    Text(viewModel.microphone.liveTranscript.isEmpty ? " " : viewModel.microphone.liveTranscript)
-                        .font(.body)
-                        .foregroundStyle(.primary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 32)
-                        .lineLimit(3)
                 }
             }
 

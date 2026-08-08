@@ -134,7 +134,7 @@ Ver acima. O produto final fica em
 - **General**: Start at Login, Speak responses, push-to-talk.
 - **LLM**: modelo, temperature e max tokens.
 - **Voice**: Kokoro Santa pt-BR e velocidade.
-- **Speech**: Whisper Turbo e idioma.
+- **Transcrição**: Whisper Turbo e idioma, sem usar a permissão Speech da Apple.
 - **Privacy**: processamento local ON, rede OFF.
 - **Advanced**: status do backend, logs, modelos.
 
@@ -158,7 +158,13 @@ Ver acima. O produto final fica em
   a frio (10–30 s). Mantenha o Qwen 3.5 9B carregado, ou reduza
   `max_tokens` em `Config/config.json`.
 - **Microfone**: dê permissão em System Settings → Privacy & Security →
-  Microphone (o app usa o bundle `com.local.jarvis`).
+  Microphone (o app usa o bundle `com.local.jarvis`). O macOS exige essa
+  confirmação na primeira utilização. O Jarvis não solicita mais a permissão
+  separada de Reconhecimento de Fala da Apple.
+- **Permissão reaparece após recompilar**: builds locais usam assinatura ad-hoc,
+  e o macOS pode considerar cada novo binário outro app. Use sempre a mesma cópia
+  Release instalada ou configure uma identidade Apple Development no Xcode para
+  que a autorização sobreviva entre builds.
 - **Comando mal transcrito**: o Whisper turbo é preciso; se a cena for ruidosa,
   aproxime-se do microfone e reduza ruído ambiente; o VAD só encerra depois de detectar fala.
 

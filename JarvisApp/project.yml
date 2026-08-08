@@ -15,13 +15,12 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.local.jarvis
         PRODUCT_NAME: Jarvis
-        MARKETING_VERSION: 0.1.4
-        CURRENT_PROJECT_VERSION: 5
+        MARKETING_VERSION: 0.1.5
+        CURRENT_PROJECT_VERSION: 6
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: Jarvis
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.productivity
         INFOPLIST_KEY_NSMicrophoneUsageDescription: "O Jarvis precisa do microfone para ouvir os seus comandos."
-        INFOPLIST_KEY_NSSpeechRecognitionUsageDescription: "O Jarvis usa o reconhecimento de fala em português do Brasil para exibir a transcrição ao vivo durante os comandos de voz."
         INFOPLIST_KEY_NSAppTransportSecurity: "{}"
         CODE_SIGN_STYLE: Manual
         CODE_SIGN_IDENTITY: "-"
