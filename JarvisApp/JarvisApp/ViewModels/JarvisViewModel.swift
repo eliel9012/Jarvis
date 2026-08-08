@@ -149,9 +149,7 @@ final class JarvisViewModel: ObservableObject {
         let msg = ChatMessage(role: role, content: content)
         messages.append(msg)
         history.append(msg)
-        if history.count > 40 {
-            history.removeFirst(history.count - 40)
-        }
+        history = LLMMode.trimmed(history)
     }
 
     func refreshBackendStatus() {

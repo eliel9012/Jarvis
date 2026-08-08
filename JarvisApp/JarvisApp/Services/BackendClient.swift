@@ -8,9 +8,9 @@ struct BackendClient {
     var baseURL: URL
     private let session: URLSession
 
-    init(baseURL: URL = BackendClient.defaultBaseURL) {
+    init(baseURL: URL = BackendClient.defaultBaseURL, configuration: URLSessionConfiguration? = nil) {
         self.baseURL = baseURL
-        let config = URLSessionConfiguration.ephemeral
+        let config = configuration ?? URLSessionConfiguration.ephemeral
         config.timeoutIntervalForRequest = 600
         config.waitsForConnectivity = false
         session = URLSession(configuration: config)

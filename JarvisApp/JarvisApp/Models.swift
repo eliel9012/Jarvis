@@ -31,6 +31,12 @@ enum LLMMode: String, CaseIterable, Identifiable {
         case .fast: return "Fast"
         }
     }
+
+    /// Mantém apenas as N mensagens mais recentes (rollover de contexto).
+    static func trimmed(_ history: [ChatMessage], maxCount: Int = 40) -> [ChatMessage] {
+        guard history.count > maxCount else { return history }
+        return Array(history.suffix(maxCount))
+    }
 }
 
 struct ChatMessage: Identifiable, Hashable, Codable {

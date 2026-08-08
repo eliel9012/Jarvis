@@ -40,6 +40,8 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
         CODE_SIGN_IDENTITY: "-"
         SWIFT_VERSION: "5.9"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Jarvis.app/Contents/MacOS/Jarvis"
+        BUNDLE_LOADER: "$(TEST_HOST)"
 schemes:
   JarvisApp:
     build:
