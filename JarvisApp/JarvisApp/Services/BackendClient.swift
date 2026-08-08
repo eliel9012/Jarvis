@@ -74,11 +74,16 @@ struct BackendClient {
         try await get("models")
     }
 
-    func chat(messages: [ChatMessage], maxTokens: Int? = nil) async throws -> ChatResponse {
-        let body: [String: Any] = [
+    func chat(
+        messages: [ChatMessage],
+        maxTokens: Int? = nil,
+        temperature: Double? = nil
+    ) async throws -> ChatResponse {
+        var body: [String: Any] = [
             "messages": messages.map { ["role": $0.role, "content": $0.content] },
             "max_tokens": maxTokens ?? 2048,
         ]
+        if let temperature { body["temperature"] = temperature }
         return try await postJSON("chat", body: body)
     }
 

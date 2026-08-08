@@ -33,6 +33,7 @@ with open(CONFIG_PATH) as f:
     CONFIG = json.load(f)
 
 LLM = CONFIG["llm"]
+LLM_MODEL = LLM["model"]
 STT_CFG = CONFIG["stt"]
 TTS_CFG = CONFIG["tts"]
 
@@ -127,7 +128,8 @@ def run_tts(text: str, model_id: str, speed: float = 1.0, ref_audio=None, ref_te
         speed=speed,
         ref_audio=ref_audio,
         ref_text=ref_text,
-        lang_code="pt",
+        lang_code=TTS_CFG.get("language", "Portuguese"),
+        instruct=TTS_CFG.get("instruct"),
     )
     total = time.perf_counter() - started
     generated = glob.glob(str(out_dir / f"{prefix}_*.wav")) or glob.glob(str(out_dir / "audio_*.wav"))
@@ -166,11 +168,11 @@ class TTSRequest(BaseModel):
 
 
 class ConversationStore:
-    """Histórico em memória com compactação de contexto em 70k tokens."""
+    """Histórico em memória com compactação antes do limite da LLM."""
 
     def __init__(self):
         self.turns: list[dict] = []
-        self.threshold = LLM.get("context_compaction_threshold", 70000)
+        self.threshold = LLM.get("context_compaction_threshold", 28000)
 
     def add(self, user: str, assistant: str):
         self.turns.append({"role": "user", "content": user})
@@ -201,13 +203,13 @@ store = ConversationStore()
 def chat_llm(messages: list[dict], model: str | None, max_tokens: int | None, temperature: float | None) -> dict:
     url = f"{LLM['base_url']}/chat/completions"
     payload = {
-        "model": model or LLM.get("quality_model"),
+        "model": model or LLM_MODEL,
         "messages": messages,
         "max_tokens": max_tokens or LLM.get("max_tokens", 1024),
+        "temperature": temperature if temperature is not None else LLM.get("temperature", 0.7),
+        "reasoning_effort": LLM.get("reasoning_effort", "none"),
         "stream": False,
     }
-    if temperature is not None:
-        payload["temperature"] = temperature
     started = time.perf_counter()
     try:
         with httpx.Client(timeout=HTTP_TIMEOUT) as client:
@@ -242,7 +244,7 @@ def health():
         "local": True,
         "llm": {"online": llm_ok, "base_url": LLM["base_url"]},
         "stt": {"model": STT_CFG["model"], "loaded": _stt_model is not None},
-        "tts": {"model": TTS_CFG["quality_model"], "loaded": _tts_model is not None},
+        "tts": {"model": TTS_CFG["model"], "loaded": _tts_model is not None},
         "timestamp": time.time(),
     }
 
@@ -257,12 +259,14 @@ def models():
         llm_models = []
     return {
         "llm": {
-            "quality": LLM["quality_model"],
-            "fast": LLM["fast_model"],
+            "model": LLM_MODEL,
             "available": [m.get("id") for m in llm_models],
         },
         "stt": STT_CFG["model"],
-        "tts": {"quality": TTS_CFG["quality_model"], "fast": TTS_CFG["fast_model"]},
+        "tts": {
+            "model": TTS_CFG["model"],
+            "language": TTS_CFG.get("language", "Portuguese"),
+        },
     }
 
 
@@ -299,9 +303,14 @@ def chat(req: ChatRequest):
 
 @app.post("/tts")
 def tts(req: TTSRequest):
-    model_id = req.model or TTS_CFG["quality_model"]
-    with _pipeline_lock:
-        return run_tts(req.text, model_id, req.speed, req.ref_audio, req.ref_text)
+    model_id = req.model or TTS_CFG["model"]
+    try:
+        with _pipeline_lock:
+            return run_tts(req.text, model_id, req.speed, req.ref_audio, req.ref_text)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, f"TTS falhou: {e}")
 
 
 @app.post("/conversation")
@@ -319,10 +328,9 @@ def conversation(file: UploadFile = File(...), mode: str = "quality", speed: flo
                 raise HTTPException(422, "Nenhuma fala detectada no áudio")
             store.add(user_text, "")
             messages = store.messages()
-            llm = chat_llm(messages, LLM["quality_model"] if mode == "quality" else LLM["fast_model"], None, None)
+            llm = chat_llm(messages, LLM_MODEL, None, None)
             store.turns[-1]["content"] = llm["content"]
-            tts_model = TTS_CFG["quality_model"] if mode == "quality" else TTS_CFG["fast_model"]
-            audio = run_tts(llm["content"], tts_model, speed)
+            audio = run_tts(llm["content"], TTS_CFG["model"], speed)
         return {
             "transcript": user_text,
             "response": llm["content"],

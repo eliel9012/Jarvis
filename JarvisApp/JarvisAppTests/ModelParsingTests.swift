@@ -40,14 +40,15 @@ final class ModelParsingTests: XCTestCase {
     func testModelsResponseDecoding() throws {
         let json = """
         {
-          "llm": {"quality": "qwen/qwen3.6-35b-a3b", "fast": "qwen/qwen3.5-9b", "available": ["a", "b"]},
+          "llm": {"model": "qwen/qwen3.5-9b", "available": ["a", "b"]},
           "stt": "whisper",
-          "tts": {"quality": "bf16", "fast": "8bit"}
+          "tts": {"model": "qwen3-tts", "language": "Portuguese"}
         }
         """.data(using: .utf8)!
         let decoded = try JSONDecoder().decode(ModelsResponse.self, from: json)
-        XCTAssertEqual(decoded.llm?.quality, "qwen/qwen3.6-35b-a3b")
-        XCTAssertEqual(decoded.tts?.fast, "8bit")
+        XCTAssertEqual(decoded.llm?.model, "qwen/qwen3.5-9b")
+        XCTAssertEqual(decoded.tts?.model, "qwen3-tts")
+        XCTAssertEqual(decoded.tts?.language, "Portuguese")
     }
 
     func testChatMessageRoundTrip() throws {

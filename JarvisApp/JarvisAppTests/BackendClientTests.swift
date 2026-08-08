@@ -66,9 +66,32 @@ final class BackendClientTests: XCTestCase {
             return (response, json.data(using: .utf8)!)
         }
         let msg = ChatMessage(role: "user", content: "oi")
-        let chat = try await client.chat(messages: [msg], maxTokens: 128)
+        let chat = try await client.chat(messages: [msg], maxTokens: 128, temperature: 0.7)
         XCTAssertEqual(chat.content, "Olá, sou o Jarvis.")
         XCTAssertEqual(chat.usage?.total_tokens, 17)
+    }
+
+    func testSTTMultipartUploadAndParsing() async throws {
+        let json = """
+        {"text":"voz masculina brasileira","language":"pt","duration":2.0,
+        "processing_time":0.08,"rtf":0.04}
+        """
+        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("test_stt.wav")
+        try Data([0x52, 0x49, 0x46, 0x46]).write(to: tmp)
+        defer { try? FileManager.default.removeItem(at: tmp) }
+
+        MockURLProtocol.requestHandler = { request in
+            XCTAssertEqual(request.url?.path, "/stt")
+            XCTAssertEqual(request.httpMethod, "POST")
+            XCTAssertTrue(request.allHTTPHeaderFields?["Content-Type"]?.contains("multipart/form-data") ?? false)
+            let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+            return (response, json.data(using: .utf8)!)
+        }
+
+        let result = try await client.stt(file: tmp)
+        XCTAssertEqual(result.text, "voz masculina brasileira")
+        XCTAssertEqual(result.language, "pt")
+        XCTAssertEqual(result.rtf, 0.04)
     }
 
     func testConversationMultipartUpload() async throws {

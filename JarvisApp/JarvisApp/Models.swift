@@ -39,17 +39,7 @@ extension BackendManager.Status {
     }
 }
 
-enum LLMMode: String, CaseIterable, Identifiable {
-    case quality
-    case fast
-    var id: String { rawValue }
-    var label: String {
-        switch self {
-        case .quality: return "Qualidade"
-        case .fast: return "Rápido"
-        }
-    }
-
+enum ConversationHistory {
     /// Mantém apenas as N mensagens mais recentes (rollover de contexto).
     static func trimmed(_ history: [ChatMessage], maxCount: Int = 40) -> [ChatMessage] {
         guard history.count > maxCount else { return history }
@@ -119,13 +109,12 @@ struct ModelsResponse: Codable {
     let tts: TTSModels?
 
     struct LLMModels: Codable {
-        let quality: String
-        let fast: String
+        let model: String
         let available: [String]
     }
     struct TTSModels: Codable {
-        let quality: String
-        let fast: String
+        let model: String
+        let language: String
     }
 }
 

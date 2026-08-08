@@ -8,9 +8,23 @@ final class JarvisViewModel: ObservableObject {
     @Published var state: JarvisState = .idle
     @Published var messages: [ChatMessage] = []
     @Published var backendStatus: BackendManager.Status = .connecting
-    @Published var footerModels = "Qwen 3.6 35B • Fish S2 Pro • Whisper Turbo"
+    @Published var footerModels = "Qwen 3.5 9B • Qwen3-TTS pt-BR • Whisper Turbo"
 
     var backendOnline: Bool { backendStatus == .online }
+    var canStartInteraction: Bool {
+        guard backendOnline else { return false }
+        if state == .idle { return true }
+        if case .error = state { return true }
+        return false
+    }
+    var canInterrupt: Bool {
+        state != .idle && !isErrorState
+    }
+
+    private var isErrorState: Bool {
+        if case .error = state { return true }
+        return false
+    }
 
     let settings = AppSettings()
     let microphone = MicrophoneManager()
@@ -19,10 +33,10 @@ final class JarvisViewModel: ObservableObject {
     let models = ModelManager()
     let historyStore = HistoryStore()
     let client = BackendClient.shared
-    let transcriber = WhisperTranscriber()
 
     private var history: [ChatMessage] = []
     private var cancellables = Set<AnyCancellable>()
+    private var responseTask: Task<Void, Never>?
 
     func start() {
         backendManager.$status
@@ -30,13 +44,16 @@ final class JarvisViewModel: ObservableObject {
             .assign(to: \.backendStatus, on: self)
             .store(in: &cancellables)
         backendManager.startMonitoring()
-        transcriber.preload()
+        microphone.onSilenceDetected = { [weak self] in
+            self?.stopListening()
+        }
         Task {
             if let config = try? JSONSerialization.jsonObject(
                 with: Data(contentsOf: configURL)
-            ) as? [String: Any], let llm = config["llm"] as? [String: Any] {
-                let q = llm["quality_model"] as? String ?? "Qwen"
-                footerModels = "\(q) • Fish S2 Pro • Whisper Turbo"
+            ) as? [String: Any],
+               let llm = config["llm"] as? [String: Any] {
+                let q = llm["model"] as? String ?? "Qwen 3.5 9B"
+                footerModels = "\(q) • Qwen3-TTS 1.7B pt-BR • Whisper Turbo"
             }
         }
     }
@@ -53,6 +70,7 @@ final class JarvisViewModel: ObservableObject {
             state = .error("Backend offline")
             return
         }
+        guard canStartInteraction else { return }
         Task {
             let granted = await microphone.requestPermission()
             guard granted else {
@@ -72,6 +90,8 @@ final class JarvisViewModel: ObservableObject {
     }
 
     func stopEverything() {
+        responseTask?.cancel()
+        responseTask = nil
         audioPlayer.stop()
         _ = microphone.stopRecording()
         if state != .idle { state = .idle }
@@ -79,19 +99,22 @@ final class JarvisViewModel: ObservableObject {
 
     // MARK: - Pipeline de voz
 
-    /// Transcrição roda local (WhisperKit) — só o texto final vai pro backend, sem upload de áudio.
+    /// O WAV fica neste Mac e é transcrito pelo Whisper MLX no backend local.
     private func processCapture() {
         guard let url = microphone.stopRecording() else { return }
-        Task {
+        responseTask?.cancel()
+        responseTask = Task {
+            defer { responseTask = nil }
             state = .transcribing
             do {
-                let language = settings.language == "auto" ? nil : settings.language
-                let transcript = try await transcriber.transcribe(audioPath: url.path, language: language)
+                let transcript = try await client.stt(file: url).text
                 guard !transcript.isEmpty else {
                     state = .idle
                     return
                 }
                 await respond(to: transcript)
+            } catch is CancellationError {
+                state = .idle
             } catch {
                 state = .error(error.localizedDescription)
             }
@@ -107,8 +130,11 @@ final class JarvisViewModel: ObservableObject {
             state = .error("Backend offline")
             return
         }
-        Task {
+        guard canStartInteraction else { return }
+        responseTask?.cancel()
+        responseTask = Task {
             await respond(to: trimmed)
+            responseTask = nil
         }
     }
 
@@ -117,9 +143,11 @@ final class JarvisViewModel: ObservableObject {
         appendMessage(role: "user", content: userText)
         state = .thinking
         do {
+            try Task.checkCancellation()
             let result = try await client.chat(
                 messages: history,
-                maxTokens: settings.maxTokens
+                maxTokens: settings.maxTokens,
+                temperature: settings.temperature
             )
             let answer = result.content.isEmpty ? (result.reasoning ?? "") : result.content
             appendMessage(role: "assistant", content: answer)
@@ -127,14 +155,14 @@ final class JarvisViewModel: ObservableObject {
                 state = .speaking
                 let tts = try await client.tts(
                     text: answer,
-                    model: settings.ttsModelRaw == "fast" ? "mlx-community/fish-audio-s2-pro-8bit" : "mlx-community/fish-audio-s2-pro-bf16",
-                    speed: settings.ttsSpeed,
-                    refAudio: settings.refVoiceEnabled && !settings.refAudioPath.isEmpty ? settings.refAudioPath : nil,
-                    refText: settings.refVoiceEnabled && !settings.refTranscript.isEmpty ? settings.refTranscript : nil
+                    speed: settings.ttsSpeed
                 )
-                audioPlayer.play(url: URL(fileURLWithPath: tts.audio_path))
+                try Task.checkCancellation()
+                try await audioPlayer.play(url: URL(fileURLWithPath: tts.audio_path))
             }
             if state != .idle { state = .idle }
+        } catch is CancellationError {
+            state = .idle
         } catch {
             state = .error(error.localizedDescription)
         }
@@ -151,7 +179,7 @@ final class JarvisViewModel: ObservableObject {
         let msg = ChatMessage(role: role, content: content)
         messages.append(msg)
         history.append(msg)
-        history = LLMMode.trimmed(history)
+        history = ConversationHistory.trimmed(history)
         historyStore.append(role: role, text: content)
     }
 

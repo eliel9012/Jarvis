@@ -6,13 +6,15 @@ import Foundation
 /// para waveform e roda transcrição ao vivo (só exibição) via Speech on-device
 /// enquanto grava. O áudio final ainda vai pro Whisper local no backend —
 /// a transcrição ao vivo aqui é só feedback visual, não a fonte da verdade.
-/// Parar de gravar é sempre manual (clique/hotkey), sem VAD automático.
+/// O VAD local encerra automaticamente depois que detecta fala seguida de silêncio.
 @MainActor
 final class MicrophoneManager: NSObject, ObservableObject {
     @Published private(set) var isRecording = false
     @Published private(set) var level: Float = 0
     @Published private(set) var levels: [Float] = []
     @Published private(set) var liveTranscript = ""
+
+    var onSilenceDetected: (() -> Void)?
 
     private var engine: AVAudioEngine?
     private var inputNode: AVAudioNode?
@@ -24,6 +26,15 @@ final class MicrophoneManager: NSObject, ObservableObject {
 
     private var outputFileURL: URL?
     private var isStopping = false
+    private var recordingStartedAt = Date()
+    private var lastVoiceActivity = Date()
+    private var voiceCandidateStartedAt: Date?
+    private var hasDetectedSpeech = false
+    private var silenceCallbackSent = false
+    private let voiceThreshold: Float = 0.12
+    private let voiceActivationDuration: TimeInterval = 0.25
+    private let silenceDuration: TimeInterval = 0.8
+    private let minimumRecordingDuration: TimeInterval = 2.5
 
     private let speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "pt-BR"))
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
@@ -50,6 +61,13 @@ final class MicrophoneManager: NSObject, ObservableObject {
         guard !isRecording else { return }
         isStopping = false
         liveTranscript = ""
+        levels = []
+        level = 0
+        recordingStartedAt = Date()
+        lastVoiceActivity = recordingStartedAt
+        voiceCandidateStartedAt = nil
+        hasDetectedSpeech = false
+        silenceCallbackSent = false
         do {
             let engine = AVAudioEngine()
             let input = engine.inputNode
@@ -117,10 +135,21 @@ final class MicrophoneManager: NSObject, ObservableObject {
         recognitionRequest?.append(buffer)
 
         guard let converter else { return }
-        let converted = AVAudioPCMBuffer(pcmFormat: outputFormat, frameCapacity: AVAudioFrameCount(buffer.frameLength * 2))!
+        let ratio = outputFormat.sampleRate / buffer.format.sampleRate
+        let outputCapacity = AVAudioFrameCount(ceil(Double(buffer.frameLength) * ratio)) + 1
+        guard let converted = AVAudioPCMBuffer(
+            pcmFormat: outputFormat,
+            frameCapacity: outputCapacity
+        ) else { return }
         var error: NSError?
         nonisolated(unsafe) let sourceBuffer = buffer
+        nonisolated(unsafe) var inputProvided = false
         let status = converter.convert(to: converted, error: &error) { _, outStatus in
+            guard !inputProvided else {
+                outStatus.pointee = .noDataNow
+                return nil
+            }
+            inputProvided = true
             outStatus.pointee = .haveData
             return sourceBuffer
         }
@@ -138,6 +167,29 @@ final class MicrophoneManager: NSObject, ObservableObject {
         level = norm
         levels.append(norm)
         if levels.count > 60 { levels.removeFirst(levels.count - 60) }
+
+        let now = Date()
+        if norm >= voiceThreshold {
+            if hasDetectedSpeech {
+                lastVoiceActivity = now
+            } else {
+                let candidateStart = voiceCandidateStartedAt ?? now
+                voiceCandidateStartedAt = candidateStart
+                if now.timeIntervalSince(candidateStart) >= voiceActivationDuration {
+                    hasDetectedSpeech = true
+                    lastVoiceActivity = now
+                }
+            }
+        } else {
+            voiceCandidateStartedAt = nil
+            if hasDetectedSpeech,
+               !silenceCallbackSent,
+               now.timeIntervalSince(recordingStartedAt) >= minimumRecordingDuration,
+               now.timeIntervalSince(lastVoiceActivity) >= silenceDuration {
+                silenceCallbackSent = true
+                onSilenceDetected?()
+            }
+        }
 
         try? audioFile?.write(from: converted)
     }

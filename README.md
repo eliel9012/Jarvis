@@ -3,7 +3,7 @@
 Assistente pessoal nativo macOS — **100% local**. Ouve, transcreve, responde e fala, tudo neste Mac, sem nenhuma API externa.
 
 ```
-MICROFONE → VAD → Whisper (MLX) → LLM local → Fish S2 Pro (MLX) → alto-falantes
+MICROFONE → VAD → Whisper (MLX) → Qwen 3.5 9B → Qwen3-TTS pt-BR (MLX) → alto-falantes
 ```
 
 ## Arquitetura
@@ -31,9 +31,9 @@ MICROFONE → VAD → Whisper (MLX) → LLM local → Fish S2 Pro (MLX) → alto
 └── Benchmarks/           llm.json, stt.json, tts.json, end_to_end.json
 ```
 
-Fluxo: o app captura áudio (AVFoundation, 16 kHz mono), envia o WAV para o backend
-`POST /conversation` que faz STT → LLM → TTS e devolve `{transcript, response, audio_path}`.
-O app reproduz o áudio.
+Fluxo: o app captura áudio (AVFoundation, 16 kHz mono) e chama os serviços locais
+`POST /stt` → `POST /chat` → `POST /tts`. O backend usa Whisper MLX, a API local
+do Qwen 3.5 9B e Qwen3-TTS MLX; o app reproduz o WAV retornado.
 
 ## Dependências
 
@@ -41,34 +41,36 @@ O app reproduz o áudio.
 |---|---|---|
 | Framework ML | MLX / MLX-LM / MLX-Audio | https://github.com/ml-explore/mlx · mlx-lm · https://github.com/Blaizzy/mlx-audio |
 | STT | Whisper Large v3 Turbo (MLX) | https://github.com/Blaizzy/mlx-audio |
-| LLM | Qwen (servido pela API local) | https://github.com/QwenLM/Qwen3.6 |
-| TTS | Fish Audio S2 Pro (MLX) | https://github.com/fishaudio/fish-speech (PyTorch original) + conversão MLX em https://github.com/Blaizzy/mlx-audio |
+| LLM | Qwen 3.5 9B MLX 4-bit (servido pela API local) | https://huggingface.co/lmstudio-community/Qwen3.5-9B-MLX-4bit |
+| TTS | Qwen3-TTS 12 Hz 1.7B VoiceDesign 8-bit (MLX) | https://github.com/QwenLM/Qwen3-TTS · https://github.com/Blaizzy/mlx-audio |
 | Servidor LLM | API OpenAI-compatible local (127.0.0.1:1234) | — |
 | Backend | FastAPI + uvicorn | https://fastapi.tiangolo.com |
 
-> O `mlx-audio` é a implementação canônica (Blaizzy). O `mlx-audio-plus`
-> (DePasqualeOrg) é um fork não-oficial — **não** utilizado.
-> O `fish-speech` original não tem suporte nativo a MLX; a porta MLX usada é a
-> do `mlx-audio` (`mlx-community/fish-audio-s2-pro-*`).
+> O `mlx-audio` é a implementação usada para aproveitar a GPU/Metal do Apple
+> Silicon. O Qwen3-TTS foi configurado com uma descrição de voz explicitamente
+> brasileira, evitando o sotaque pt-PT do modelo anterior.
 
 ## Modelos Hugging Face
 
 | Função | Modelo | Tamanho |
 |---|---|---|
-| LLM Quality | `qwen/qwen3.6-35b-a3b` (via API :1234) | já carregado pelo servidor |
-| LLM Fast | `qwen/qwen3.5-9b` (via API :1234) | já carregado pelo servidor |
+| LLM | `qwen/qwen3.5-9b` (via API :1234) | 9B, MLX 4-bit |
 | STT | `mlx-community/whisper-large-v3-turbo-asr-fp16` | ~1.6 GB |
-| TTS Quality | `mlx-community/fish-audio-s2-pro-bf16` | ~11 GB |
-| TTS Fast | `mlx-community/fish-audio-s2-pro-8bit` | ~6.7 GB |
+| TTS | `mlx-community/Qwen3-TTS-12Hz-1.7B-VoiceDesign-8bit` | ~2.9 GB em disco; ~6.1 GB no pico medido |
 
 Os modelos TTS/STT ficam em `~/Library/Caches/huggingface/hub/` (cache padrão).
 O LLM é usado através do servidor OpenAI-compatible local na porta **1234**
-(ex.: LM Studio / llama.cpp). A alternativa com `mlx_lm.server`:
+(ex.: LM Studio / llama.cpp). O valor de `llm.model` precisa ser igual ao `id`
+devolvido por `http://127.0.0.1:1234/v1/models`. A alternativa com
+`mlx_lm.server` é usar uma quantização MLX do mesmo modelo:
 
 ```bash
-mlx_lm.server --model mlx-community/Qwen3-14B-4bit --host 127.0.0.1 --port 8081
-# então mude "base_url" em Config/config.json
+mlx_lm.server --model lmstudio-community/Qwen3.5-9B-MLX-4bit --host 127.0.0.1 --port 1234
+# confira o id exposto em /v1/models e ajuste llm.model, se necessário
 ```
+
+O backend envia `reasoning_effort: none`: para um assistente de voz, isso evita
+que o modelo gaste a janela de saída em raciocínio interno antes da resposta.
 
 ## Instalação
 
@@ -82,7 +84,8 @@ source .venv/bin/activate
 uv pip install -r requirements.txt
 
 # 2) Servidor LLM local (deixe rodando)
-#    já ativo em http://127.0.0.1:1234 (você pode usar LM Studio)
+lms load qwen/qwen3.5-9b --identifier qwen/qwen3.5-9b --gpu max -y
+lms server start --port 1234
 
 # 3) Backend JARVIS
 cd ~/Developer/Jarvis/Backend/api
@@ -100,12 +103,11 @@ ociosa — não é obrigatório abrir o Terminal.
 
 ## Uso
 
-- **Microfone**: fale e pare; o VAD (RMS) encerra após ~600 ms de silêncio.
+- **Microfone**: fale normalmente; depois de detectar voz, o VAD local encerra após ~800 ms de silêncio. O botão Parar continua disponível.
 - **Push to Talk**: segure `⌥ Space` para ouvir, solte para processar.
-- **Texto**: digite em "Ask Jarvis..." e Enter.
-- **Modos**: Quality (Qwen 3.6 35B) / Fast (Qwen 3.5 9B).
-- **Voz de referência** (voice cloning): importe áudio em `Audio/references/`
-  e configure em Settings → Voice → Reference Voice (com o transcript).
+- **Texto**: digite em "Pergunte ao Jarvis..." e pressione Enter.
+- **LLM**: Qwen 3.5 9B local, com raciocínio desativado para reduzir a latência.
+- **Voz**: Qwen3-TTS 1.7B 8-bit, instruído para português brasileiro neutro.
 
 ## Build & execução
 
@@ -115,9 +117,9 @@ Ver acima. O produto final fica em
 ## Settings
 
 - **General**: Start at Login, Speak responses, push-to-talk.
-- **LLM**: modo, temperature, max tokens, context size.
-- **Voice**: Fish BF16 / 8-bit, velocidade, voz de referência.
-- **Speech**: Whisper Turbo, idioma, threshold de VAD.
+- **LLM**: modelo, temperature e max tokens.
+- **Voice**: Qwen3-TTS pt-BR e velocidade.
+- **Speech**: Whisper Turbo e idioma.
 - **Privacy**: processamento local ON, rede OFF.
 - **Advanced**: status do backend, logs, modelos.
 
@@ -135,30 +137,29 @@ Ver acima. O produto final fica em
 
 - **Backend offline**: `curl http://127.0.0.1:8765/health`. Se o venv não
   existir, rode a etapa 1 da instalação. Veja `~/Developer/Jarvis/Logs/backend.out.log`.
-- **LLM lento / sem resposta**: a API da porta 1234 pode estar trocando modelos
-  (cold load de 10–30 s). Mantenha o modelo Quality carregado, ou reduza
+- **LLM lento / sem resposta**: a API da porta 1234 pode estar carregando o modelo
+  a frio (10–30 s). Mantenha o Qwen 3.5 9B carregado, ou reduza
   `max_tokens` em `Config/config.json`.
 - **Microfone**: dê permissão em System Settings → Privacy & Security →
   Microphone (o app usa o bundle `com.local.jarvis`).
 - **Comando mal transcrito**: o Whisper turbo é preciso; se a cena for ruidosa,
-  suba o VAD threshold em Settings → Speech.
+  aproxime-se do microfone e reduza ruído ambiente; o VAD só encerra depois de detectar fala.
 
 ## Limpar modelos
 
 ```bash
 rm -rf ~/Library/Caches/huggingface/hub/models--mlx-community--whisper-large-v3-turbo-asr-fp16
-rm -rf ~/Library/Caches/huggingface/hub/models--mlx-community--fish-audio-s2-pro-bf16
-rm -rf ~/Library/Caches/huggingface/hub/models--mlx-community--fish-audio-s2-pro-8bit
+rm -rf ~/Library/Caches/huggingface/hub/models--mlx-community--Qwen3-TTS-12Hz-1.7B-VoiceDesign-8bit
 ```
 
 ## Trocar LLM
 
-Edite `Config/config.json` → `llm.quality_model` / `llm.fast_model` e reinicie
-o backend. O endpoint /models lista os modelos disponíveis na API local.
+Edite `Config/config.json` → `llm.model` e reinicie o backend. O endpoint
+`/models` lista o modelo configurado e os modelos disponíveis na API local.
 
 ## Trocar TTS
 
-Edite `Config/config.json` → `tts.quality_model` / `tts.fast_model`.
+Edite `Config/config.json` → `tts.model`, `tts.language` e `tts.instruct`.
 
 ## Benchmark
 
@@ -170,9 +171,9 @@ local já aquecida. Veja `Benchmarks/*.json`.
 | STT Whisper (5 s) | RTF 0.13 |
 | STT Whisper (10 s) | RTF 0.06 |
 | STT Whisper (30 s) | RTF 0.02 |
-| LLM Quality (warm) | até ~45 tok/s, TTFT ~0.5 s |
-| TTS Fish BF16 | RTF ~1.7 (pico ~11–15 GB RAM) |
-| End-to-end | 3–33 s (dominado pelo LLM reasoning) |
+| LLM Qwen 3.5 9B (warm) | 41.8 tok/s, TTFT 0.316 s |
+| TTS Qwen3-TTS pt-BR (warm) | RTF 0.267; 9.68 s de áudio em 2.58 s; pico cold 6.13 GB |
+| End-to-end | rode novamente após a troca da LLM |
 
 Para re-medir:
 
@@ -199,5 +200,5 @@ Wake word, ferramentas (tools), HomePod/AirPlay, visão, RAG, Home Assistant.
 
 ## Licença dos modelos
 
-Os modelos podem ter licenças próprias (ex.: Fish Audio S2 Pro é
-pesquisa/não-comercial). Verifique o model card de cada um antes de redistribuir.
+Os modelos podem ter licenças próprias. O Qwen3-TTS é Apache 2.0; verifique os
+model cards antes de redistribuir pesos ou vozes geradas.

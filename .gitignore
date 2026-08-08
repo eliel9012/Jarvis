@@ -65,3 +65,6 @@ secrets*
 *.sock
 Build_output/
 *.dSYM/
+
+# Evidências locais de auditoria visual
+Artifacts/

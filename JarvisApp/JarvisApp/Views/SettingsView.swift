@@ -65,18 +65,11 @@ private struct LLMTab: View {
     @ObservedObject var settings: AppSettings
     var body: some View {
         Form {
-            Picker("Modo", selection: $settings.llmModeRaw) {
-                Text("Qualidade").tag(LLMMode.quality.rawValue)
-                Text("Rápido").tag(LLMMode.fast.rawValue)
-            }
-            .pickerStyle(.radioGroup)
-            LabeledContent("Qualidade") { Text("Qwen 3.6 35B A3B") }
-            LabeledContent("Rápido") { Text("Qwen 3.5 9B") }
+            LabeledContent("Modelo") { Text("Qwen 3.5 9B") }
             Slider(value: $settings.temperature, in: 0.0...1.5, step: 0.05) {
                 Text("Temperatura: \(String(format: "%.2f", settings.temperature))")
             }
             Stepper("Máx. tokens: \(settings.maxTokens)", value: $settings.maxTokens, in: 128...8192, step: 128)
-            Stepper("Tamanho do contexto: \(settings.contextSize)", value: $settings.contextSize, in: 8192...200000, step: 1024)
         }
         .formStyle(.grouped)
     }
@@ -86,22 +79,14 @@ private struct VoiceTab: View {
     @ObservedObject var settings: AppSettings
     var body: some View {
         Form {
-            Picker("Modelo de voz", selection: $settings.ttsModelRaw) {
-                Text("Fish S2 Pro BF16").tag("quality")
-                Text("Fish S2 Pro 8-bit").tag("fast")
-            }
-            .pickerStyle(.radioGroup)
+            LabeledContent("Modelo") { Text("Qwen3-TTS 1.7B 8-bit") }
+            LabeledContent("Idioma") { Text("Português do Brasil") }
             Slider(value: $settings.ttsSpeed, in: 0.5...2.0, step: 0.05) {
                 Text("Velocidade de fala: \(String(format: "%.2f", settings.ttsSpeed))x")
             }
-            Toggle("Voz de referência", isOn: $settings.refVoiceEnabled)
-            if settings.refVoiceEnabled {
-                TextField("Caminho do áudio de referência", text: $settings.refAudioPath)
-                TextField("Transcrição de referência", text: $settings.refTranscript)
-                Text("Salve o áudio de referência em ~/Developer/Jarvis/Audio/references/")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
+            Text("Voz masculina brasileira em registro barítono, com sotaque neutro e processamento totalmente local.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
         .formStyle(.grouped)
     }
