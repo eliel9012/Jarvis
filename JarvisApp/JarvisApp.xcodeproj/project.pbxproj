@@ -28,6 +28,8 @@
 		EF7C264188D29BEA06BF9CCF /* BackendClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7230D595CF843FE3F523A902 /* BackendClientTests.swift */; };
 		FD9CC8374788B342FB9152F1 /* HistoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6BCAD66384C93E09227E121 /* HistoryStore.swift */; };
 		FF110DCEB88EACF50970C78E /* ToolProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DDF5824CFAFB9F69F7D09C1 /* ToolProtocol.swift */; };
+		AA0010000000000000000001 /* FloatingOrbController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0010000000000000000002 /* FloatingOrbController.swift */; };
+		AA0010000000000000000003 /* JarvisTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0010000000000000000004 /* JarvisTheme.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -64,6 +66,8 @@
 		BFFBE2DB1014E1A31B173524 /* OrbView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrbView.swift; sourceTree = "<group>"; };
 		E6BCAD66384C93E09227E121 /* HistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryStore.swift; sourceTree = "<group>"; };
 		EADD266129CB86D93348012B /* BackendManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackendManager.swift; sourceTree = "<group>"; };
+		AA0010000000000000000002 /* FloatingOrbController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingOrbController.swift; sourceTree = "<group>"; };
+		AA0010000000000000000004 /* JarvisTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JarvisTheme.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -96,6 +100,7 @@
 			isa = PBXGroup;
 			children = (
 				A81D2B286492B6091C2309F2 /* ConversationView.swift */,
+				AA0010000000000000000004 /* JarvisTheme.swift */,
 				2DAB014AB699D0A3AD563495 /* MainView.swift */,
 				BFFBE2DB1014E1A31B173524 /* OrbView.swift */,
 				2AF10B991F6600D17760B644 /* SettingsView.swift */,
@@ -135,6 +140,7 @@
 			isa = PBXGroup;
 			children = (
 				98CC8BF682C07E2DCDEEA5CB /* AudioPlayerManager.swift */,
+				AA0010000000000000000002 /* FloatingOrbController.swift */,
 				E6BCAD66384C93E09227E121 /* HistoryStore.swift */,
 				4DDCD02E4DD9875163486737 /* LaunchAtLogin.swift */,
 				AC8DEBD7084D7C5A994CEB3A /* MicrophoneManager.swift */,
@@ -246,7 +252,9 @@
 				2719CBF8433B3C805CF9CA24 /* BackendClient.swift in Sources */,
 				2229DE12165D8288BE3A9C93 /* BackendManager.swift in Sources */,
 				8D4EF31F8B55FBB222EC03FE /* ConversationView.swift in Sources */,
+				AA0010000000000000000001 /* FloatingOrbController.swift in Sources */,
 				FD9CC8374788B342FB9152F1 /* HistoryStore.swift in Sources */,
+				AA0010000000000000000003 /* JarvisTheme.swift in Sources */,
 				3502D3234561E8F256B9EAD5 /* JarvisApp.swift in Sources */,
 				833A9F4353B1967E185986F7 /* JarvisViewModel.swift in Sources */,
 				7F94F8CFECC52807EEAB04CF /* LaunchAtLogin.swift in Sources */,
@@ -291,7 +299,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 7;
 				ENABLE_HARDENED_RUNTIME = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Jarvis;
@@ -303,7 +311,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.1.5;
+				MARKETING_VERSION = 0.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.local.jarvis;
 				PRODUCT_NAME = Jarvis;
 				SDKROOT = macosx;
@@ -477,7 +485,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 7;
 				ENABLE_HARDENED_RUNTIME = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Jarvis;
@@ -489,7 +497,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.1.5;
+				MARKETING_VERSION = 0.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.local.jarvis;
 				PRODUCT_NAME = Jarvis;
 				SDKROOT = macosx;
