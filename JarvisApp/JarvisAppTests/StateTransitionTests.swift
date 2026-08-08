@@ -13,6 +13,8 @@ final class StateTransitionTests: XCTestCase {
         XCTAssertEqual(JarvisState.idle.label, "Ocioso")
         XCTAssertEqual(JarvisState.listening.label, "Ouvindo...")
         XCTAssertEqual(JarvisState.thinking.label, "Pensando...")
+        XCTAssertEqual(JarvisState.synthesizing.label, "Gerando voz...")
+        XCTAssertEqual(JarvisState.speaking.label, "Falando...")
         XCTAssertTrue(JarvisState.error("boom").label.contains("boom"))
     }
 

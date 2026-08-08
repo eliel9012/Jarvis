@@ -109,6 +109,16 @@ ociosa — não é obrigatório abrir o Terminal.
 - **LLM**: Qwen 3.5 9B local, com raciocínio desativado para reduzir a latência.
 - **Voz**: Qwen3-TTS 1.7B 8-bit, instruído para português brasileiro neutro.
 
+### Movimento e feedback visual
+
+- A abertura usa uma sequência nativa SwiftUI de anéis, orbe e letras escalonadas.
+- O orbe diferencia visualmente `Ouvindo`, `Transcrevendo`, `Pensando`,
+  `Gerando voz` e `Falando`, acompanhando as etapas reais do pipeline.
+- As curvas, timelines e entradas em stagger foram adaptadas das técnicas do
+  [GSAP](https://gsap.com/), sem incorporar JavaScript ou dependências web.
+- A preferência **Reduzir Movimento** do macOS simplifica a abertura e pausa
+  animações contínuas não essenciais.
+
 ## Build & execução
 
 Ver acima. O produto final fica em

@@ -6,6 +6,7 @@ enum JarvisState: Equatable {
     case listening
     case transcribing
     case thinking
+    case synthesizing
     case speaking
     case error(String)
 
@@ -15,6 +16,7 @@ enum JarvisState: Equatable {
         case .listening: return "Ouvindo..."
         case .transcribing: return "Transcrevendo..."
         case .thinking: return "Pensando..."
+        case .synthesizing: return "Gerando voz..."
         case .speaking: return "Falando..."
         case .error(let message): return "Erro: \(message)"
         }

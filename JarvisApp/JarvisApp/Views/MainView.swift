@@ -3,9 +3,36 @@ import SwiftUI
 /// Tela principal do Jarvis.
 struct MainView: View {
     @ObservedObject var viewModel: JarvisViewModel
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var textInput = ""
+    @State private var isShowingLaunch = true
 
     var body: some View {
+        ZStack {
+            mainContent
+                .opacity(isShowingLaunch ? 0 : 1)
+                .scaleEffect(isShowingLaunch && !reduceMotion ? 0.985 : 1)
+
+            if isShowingLaunch {
+                LaunchSequenceView {
+                    withAnimation(.easeOut(duration: reduceMotion ? 0.12 : 0.35)) {
+                        isShowingLaunch = false
+                    }
+                }
+                .transition(.opacity)
+                .zIndex(10)
+            }
+        }
+        .frame(minWidth: 520, minHeight: 640)
+        .background(Color(nsColor: .windowBackgroundColor))
+        .task {
+            if viewModel.messages.isEmpty {
+                viewModel.start()
+            }
+        }
+    }
+
+    private var mainContent: some View {
         VStack(spacing: 0) {
             HStack {
                 Text("JARVIS")
@@ -26,9 +53,22 @@ struct MainView: View {
 
             VStack(spacing: 16) {
                 OrbView(state: viewModel.state)
-                Text(viewModel.state.label)
-                    .font(.title2)
-                    .foregroundStyle(.secondary)
+                ZStack {
+                    Text(viewModel.state.label)
+                        .id(viewModel.state.label)
+                        .font(.title2.weight(.medium))
+                        .foregroundStyle(.secondary)
+                        .transition(
+                            reduceMotion
+                                ? .opacity
+                                : .asymmetric(
+                                    insertion: .offset(y: 8).combined(with: .opacity),
+                                    removal: .offset(y: -8).combined(with: .opacity)
+                                )
+                        )
+                }
+                .animation(.timingCurve(0.16, 1, 0.3, 1, duration: 0.42), value: viewModel.state.label)
+
                 if viewModel.state == .listening {
                     WaveformView(levels: viewModel.microphone.levels)
                     Text(viewModel.microphone.liveTranscript.isEmpty ? " " : viewModel.microphone.liveTranscript)
@@ -100,13 +140,6 @@ struct MainView: View {
                 .font(.caption2)
                 .foregroundStyle(.secondary)
                 .padding(.bottom, 8)
-        }
-        .frame(minWidth: 520, minHeight: 640)
-        .background(Color(nsColor: .windowBackgroundColor))
-        .task {
-            if viewModel.messages.isEmpty {
-                viewModel.start()
-            }
         }
     }
 }

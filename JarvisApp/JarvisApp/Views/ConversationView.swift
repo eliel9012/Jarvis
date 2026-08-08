@@ -3,6 +3,7 @@ import SwiftUI
 /// Histórico da conversa.
 struct ConversationView: View {
     let messages: [ChatMessage]
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var scrollTarget: UUID?
 
     var body: some View {
@@ -18,9 +19,25 @@ struct ConversationView: View {
                     ForEach(messages) { msg in
                         MessageBubble(message: msg)
                             .id(msg.id)
+                            .transition(
+                                reduceMotion
+                                    ? .opacity
+                                    : .asymmetric(
+                                        insertion: .offset(x: msg.role == "user" ? 18 : -18)
+                                            .combined(with: .opacity)
+                                            .combined(with: .scale(scale: 0.98)),
+                                        removal: .opacity
+                                    )
+                            )
                     }
                 }
                 .padding()
+                .animation(
+                    reduceMotion
+                        ? .easeOut(duration: 0.15)
+                        : .timingCurve(0.16, 1, 0.3, 1, duration: 0.48),
+                    value: messages.count
+                )
             }
             .onChange(of: messages.count) { _, _ in
                 if let last = messages.last {
