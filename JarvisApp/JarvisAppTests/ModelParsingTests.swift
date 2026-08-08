@@ -57,5 +57,6 @@ final class ModelParsingTests: XCTestCase {
         let decoded = try JSONDecoder().decode(ChatMessage.self, from: data)
         XCTAssertEqual(decoded.role, "user")
         XCTAssertEqual(decoded.content, "olá")
+        XCTAssertEqual(decoded.source, .typed)
     }
 }

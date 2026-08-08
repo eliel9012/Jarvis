@@ -24,13 +24,21 @@ final class MessageRecord {
     var role: String
     var text: String
     var timestamp: Date
+    var source: String = MessageSource.typed.rawValue
     var conversation: ConversationRecord?
 
-    init(id: UUID = UUID(), role: String, text: String, timestamp: Date = Date()) {
+    init(
+        id: UUID = UUID(),
+        role: String,
+        text: String,
+        timestamp: Date = Date(),
+        source: String = MessageSource.typed.rawValue
+    ) {
         self.id = id
         self.role = role
         self.text = text
         self.timestamp = timestamp
+        self.source = source
     }
 }
 
@@ -41,9 +49,13 @@ final class HistoryStore {
     private var context: ModelContext { container.mainContext }
     private var current: ConversationRecord?
 
-    init() {
+    init(inMemory: Bool = false) {
         let schema = Schema([ConversationRecord.self, MessageRecord.self])
-        let config = ModelConfiguration("JarvisHistory", schema: schema)
+        let config = ModelConfiguration(
+            "JarvisHistory",
+            schema: schema,
+            isStoredInMemoryOnly: inMemory
+        )
         do {
             container = try ModelContainer(for: schema, configurations: [config])
         } catch {
@@ -51,14 +63,14 @@ final class HistoryStore {
         }
     }
 
-    func append(role: String, text: String) {
+    func append(role: String, text: String, source: MessageSource) {
         if current == nil {
             let conv = ConversationRecord()
             context.insert(conv)
             current = conv
         }
         guard let current else { return }
-        let msg = MessageRecord(role: role, text: text)
+        let msg = MessageRecord(role: role, text: text, source: source.rawValue)
         context.insert(msg)
         msg.conversation = current
         current.messages.append(msg)
@@ -74,6 +86,10 @@ final class HistoryStore {
 
     func messages(for conversation: ConversationRecord) -> [MessageRecord] {
         conversation.messages.sorted { $0.timestamp < $1.timestamp }
+    }
+
+    func startNewConversation() {
+        current = nil
     }
 
     func deleteAll() {

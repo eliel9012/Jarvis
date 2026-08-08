@@ -23,6 +23,12 @@ enum JarvisState: Equatable {
     }
 }
 
+enum MessageSource: String, Codable {
+    case typed
+    case stt
+    case assistant
+}
+
 extension BackendManager.Status {
     var label: String {
         switch self {
@@ -54,12 +60,20 @@ struct ChatMessage: Identifiable, Hashable, Codable {
     var role: String
     var content: String
     var timestamp: Date
+    var source: MessageSource
 
-    init(id: UUID = UUID(), role: String, content: String, timestamp: Date = Date()) {
+    init(
+        id: UUID = UUID(),
+        role: String,
+        content: String,
+        timestamp: Date = Date(),
+        source: MessageSource = .typed
+    ) {
         self.id = id
         self.role = role
         self.content = content
         self.timestamp = timestamp
+        self.source = source
     }
 }
 

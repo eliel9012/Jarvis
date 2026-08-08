@@ -33,7 +33,9 @@ MICROFONE → VAD → Whisper (MLX) → Qwen 3.5 9B → Qwen3-TTS pt-BR (MLX) �
 
 Fluxo: o app captura áudio (AVFoundation, 16 kHz mono) e chama os serviços locais
 `POST /stt` → `POST /chat` → `POST /tts`. O backend usa Whisper MLX, a API local
-do Qwen 3.5 9B e Qwen3-TTS MLX; o app reproduz o WAV retornado.
+do Qwen 3.5 9B e Qwen3-TTS MLX; o app reproduz o WAV retornado e o apaga assim
+que a reprodução termina. Conversas digitadas, transcrições STT e respostas do
+assistente ficam salvas localmente como texto pelo SwiftData.
 
 ## Dependências
 
@@ -108,6 +110,8 @@ ociosa — não é obrigatório abrir o Terminal.
 - **Texto**: digite em "Pergunte ao Jarvis..." e pressione Enter.
 - **LLM**: Qwen 3.5 9B local, com raciocínio desativado para reduzir a latência.
 - **Voz**: Qwen3-TTS 1.7B 8-bit, instruído para português brasileiro neutro.
+- **Histórico**: mensagens digitadas, transcrições STT e respostas são persistidas localmente com sua origem.
+- **Áudio temporário**: capturas do microfone e respostas TTS são apagadas após o processamento/reprodução; órfãos de uma interrupção inesperada são limpos pelo backend.
 
 ### Movimento e feedback visual
 
@@ -142,6 +146,8 @@ Ver acima. O produto final fica em
   - `huggingface.co`, `cdn-lfs.huggingface.co` (modelos)
   - `github.com`, `pypi.org`, `files.pythonhosted.org` (código/pacotes)
 - Nenhum áudio sai do dispositivo.
+- O histórico persistente contém somente texto e metadados; arquivos de áudio
+  temporários não são mantidos depois de usados.
 
 ## Troubleshooting
 

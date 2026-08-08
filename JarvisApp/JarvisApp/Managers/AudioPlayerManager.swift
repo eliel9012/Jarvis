@@ -1,6 +1,13 @@
 import AVFoundation
 import Foundation
 
+enum TemporaryAudioFiles {
+    static func remove(_ url: URL) {
+        guard url.isFileURL else { return }
+        try? FileManager.default.removeItem(at: url)
+    }
+}
+
 /// Reproduz o áudio de resposta com controles de stop/repeat/volume.
 @MainActor
 final class AudioPlayerManager: NSObject, ObservableObject {
@@ -56,6 +63,7 @@ final class AudioPlayerManager: NSObject, ObservableObject {
 
     private func finishPlayback() {
         player = nil
+        currentURL = nil
         isPlaying = false
         playbackContinuation?.resume()
         playbackContinuation = nil
