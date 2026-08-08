@@ -1,0 +1,17 @@
+{
+  "audio": "/tmp/jarvis_16k.wav",
+  "T0_user_stops": 0.0,
+  "T1_stt_complete": 1.102,
+  "T2_first_token": 23.308,
+  "T3_text_complete": 28.859,
+  "T4_tts_ready": 33.115,
+  "T5_audio_starts": 33.115,
+  "end_to_end_s": 33.115,
+  "transcript": "Jarvis, você consegue me ouvir?",
+  "response": "Sim, estou ouvindo. Como posso ajudar?",
+  "audio_path": "/Users/eliel/Developer/Jarvis/Audio/output/1786154946329227000.wav",
+  "stt_processing_s": 1.059,
+  "llm_latency_s": 27.757,
+  "tts_rtf": 1.637,
+  "audio_duration_s": 2.6
+}
