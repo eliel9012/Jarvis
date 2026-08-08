@@ -152,12 +152,13 @@ final class JarvisViewModel: ObservableObject {
             let answer = result.content.isEmpty ? (result.reasoning ?? "") : result.content
             appendMessage(role: "assistant", content: answer)
             if settings.speakResponses {
-                state = .speaking
+                state = .synthesizing
                 let tts = try await client.tts(
                     text: answer,
                     speed: settings.ttsSpeed
                 )
                 try Task.checkCancellation()
+                state = .speaking
                 try await audioPlayer.play(url: URL(fileURLWithPath: tts.audio_path))
             }
             if state != .idle { state = .idle }
