@@ -1,0 +1,494 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		1AD0E17AD4526DFCBFF08356 /* AudioPlayerManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98CC8BF682C07E2DCDEEA5CB /* AudioPlayerManager.swift */; };
+		1C626597AD3F45A52FA5E6B9 /* WaveformView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D8B87E26D6D396AF6B887C6 /* WaveformView.swift */; };
+		21111DFD651BF7DE4678D5FF /* ModelManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FE40D2D57908B12E4E11D81 /* ModelManager.swift */; };
+		2229DE12165D8288BE3A9C93 /* BackendManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = EADD266129CB86D93348012B /* BackendManager.swift */; };
+		2719CBF8433B3C805CF9CA24 /* BackendClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91BA6A3DE8DE3DFAF782A879 /* BackendClient.swift */; };
+		3502D3234561E8F256B9EAD5 /* JarvisApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43CE7D6D0EB2FA4A6B041454 /* JarvisApp.swift */; };
+		4C3D9FAA1A90E440AC7FBD75 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E703261AB1E3D496987AC24 /* AppSettings.swift */; };
+		4E0A21A722FB728ADD879425 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 490121F622F8208B288ED901 /* Models.swift */; };
+		6658EF9D2B9D77E50766F813 /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DAB014AB699D0A3AD563495 /* MainView.swift */; };
+		833A9F4353B1967E185986F7 /* JarvisViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF71D8DF8B2949070A04CEA8 /* JarvisViewModel.swift */; };
+		8D4EF31F8B55FBB222EC03FE /* ConversationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A81D2B286492B6091C2309F2 /* ConversationView.swift */; };
+		B3880F6060735AA297D2CF74 /* MicrophoneManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC8DEBD7084D7C5A994CEB3A /* MicrophoneManager.swift */; };
+		BF081A3591467809EC839078 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AF10B991F6600D17760B644 /* SettingsView.swift */; };
+		D0CE6D732A01DA03F8F198AB /* OrbView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFFBE2DB1014E1A31B173524 /* OrbView.swift */; };
+		FF110DCEB88EACF50970C78E /* ToolProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DDF5824CFAFB9F69F7D09C1 /* ToolProtocol.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		A8D27FD14C2CAA2E6F601432 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 7DB0DAB8DB97C1CD818BB48F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CE37E25EDF3A9F2A5BDA9298;
+			remoteInfo = JarvisApp;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		0D8B87E26D6D396AF6B887C6 /* WaveformView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaveformView.swift; sourceTree = "<group>"; };
+		2AF10B991F6600D17760B644 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		2DAB014AB699D0A3AD563495 /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
+		3DDF5824CFAFB9F69F7D09C1 /* ToolProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolProtocol.swift; sourceTree = "<group>"; };
+		43CE7D6D0EB2FA4A6B041454 /* JarvisApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JarvisApp.swift; sourceTree = "<group>"; };
+		490121F622F8208B288ED901 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		5E703261AB1E3D496987AC24 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
+		6931A58F122A71990D09EF46 /* JarvisApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = JarvisApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		7FE40D2D57908B12E4E11D81 /* ModelManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelManager.swift; sourceTree = "<group>"; };
+		91BA6A3DE8DE3DFAF782A879 /* BackendClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackendClient.swift; sourceTree = "<group>"; };
+		98CC8BF682C07E2DCDEEA5CB /* AudioPlayerManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPlayerManager.swift; sourceTree = "<group>"; };
+		A81D2B286492B6091C2309F2 /* ConversationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationView.swift; sourceTree = "<group>"; };
+		AC8DEBD7084D7C5A994CEB3A /* MicrophoneManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MicrophoneManager.swift; sourceTree = "<group>"; };
+		B3C4FB0DCE7115FB8C5039E7 /* JarvisAppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = JarvisAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		BF71D8DF8B2949070A04CEA8 /* JarvisViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JarvisViewModel.swift; sourceTree = "<group>"; };
+		BFFBE2DB1014E1A31B173524 /* OrbView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrbView.swift; sourceTree = "<group>"; };
+		EADD266129CB86D93348012B /* BackendManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackendManager.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		08FED5B7DD0903F841695517 /* JarvisApp */ = {
+			isa = PBXGroup;
+			children = (
+				5E703261AB1E3D496987AC24 /* AppSettings.swift */,
+				43CE7D6D0EB2FA4A6B041454 /* JarvisApp.swift */,
+				490121F622F8208B288ED901 /* Models.swift */,
+				3DDF5824CFAFB9F69F7D09C1 /* ToolProtocol.swift */,
+				D1F6A89975353FE75896E399 /* Managers */,
+				C956B7C72DFE52C7EACA126E /* Services */,
+				BAC443165DC80CE368007F3A /* ViewModels */,
+				699E1B9953460F6945E81F1F /* Views */,
+			);
+			path = JarvisApp;
+			sourceTree = "<group>";
+		};
+		241DC7A9A2CF5BC2D04B1BB2 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				6931A58F122A71990D09EF46 /* JarvisApp.app */,
+				B3C4FB0DCE7115FB8C5039E7 /* JarvisAppTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		699E1B9953460F6945E81F1F /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				A81D2B286492B6091C2309F2 /* ConversationView.swift */,
+				2DAB014AB699D0A3AD563495 /* MainView.swift */,
+				BFFBE2DB1014E1A31B173524 /* OrbView.swift */,
+				2AF10B991F6600D17760B644 /* SettingsView.swift */,
+				0D8B87E26D6D396AF6B887C6 /* WaveformView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		6DE5125DADE6709B05736E6D /* JarvisAppTests */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = JarvisAppTests;
+			sourceTree = "<group>";
+		};
+		BAC443165DC80CE368007F3A /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				BF71D8DF8B2949070A04CEA8 /* JarvisViewModel.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		C956B7C72DFE52C7EACA126E /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				91BA6A3DE8DE3DFAF782A879 /* BackendClient.swift */,
+				EADD266129CB86D93348012B /* BackendManager.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		D1F6A89975353FE75896E399 /* Managers */ = {
+			isa = PBXGroup;
+			children = (
+				98CC8BF682C07E2DCDEEA5CB /* AudioPlayerManager.swift */,
+				AC8DEBD7084D7C5A994CEB3A /* MicrophoneManager.swift */,
+				7FE40D2D57908B12E4E11D81 /* ModelManager.swift */,
+			);
+			path = Managers;
+			sourceTree = "<group>";
+		};
+		FAB52A8BA94ED53024677170 = {
+			isa = PBXGroup;
+			children = (
+				08FED5B7DD0903F841695517 /* JarvisApp */,
+				6DE5125DADE6709B05736E6D /* JarvisAppTests */,
+				241DC7A9A2CF5BC2D04B1BB2 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		CE37E25EDF3A9F2A5BDA9298 /* JarvisApp */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F0EBA81C0F5F79EA2F31CADD /* Build configuration list for PBXNativeTarget "JarvisApp" */;
+			buildPhases = (
+				6E8423563D0FD4F8B7DD421F /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = JarvisApp;
+			packageProductDependencies = (
+			);
+			productName = JarvisApp;
+			productReference = 6931A58F122A71990D09EF46 /* JarvisApp.app */;
+			productType = "com.apple.product-type.application";
+		};
+		D7529497E6C9A4267CD4764F /* JarvisAppTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 2F7FC497B524ADA3BE088E6B /* Build configuration list for PBXNativeTarget "JarvisAppTests" */;
+			buildPhases = (
+				C533AFEDAD01B9DA1BF74567 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				AA26A3BA88789C6A170DB39B /* PBXTargetDependency */,
+			);
+			name = JarvisAppTests;
+			packageProductDependencies = (
+			);
+			productName = JarvisAppTests;
+			productReference = B3C4FB0DCE7115FB8C5039E7 /* JarvisAppTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		7DB0DAB8DB97C1CD818BB48F /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 2660;
+				TargetAttributes = {
+					CE37E25EDF3A9F2A5BDA9298 = {
+						ProvisioningStyle = Manual;
+					};
+				};
+			};
+			buildConfigurationList = B4B55E25995F926AA11FA6BD /* Build configuration list for PBXProject "JarvisApp" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = FAB52A8BA94ED53024677170;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 241DC7A9A2CF5BC2D04B1BB2 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				CE37E25EDF3A9F2A5BDA9298 /* JarvisApp */,
+				D7529497E6C9A4267CD4764F /* JarvisAppTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		6E8423563D0FD4F8B7DD421F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4C3D9FAA1A90E440AC7FBD75 /* AppSettings.swift in Sources */,
+				1AD0E17AD4526DFCBFF08356 /* AudioPlayerManager.swift in Sources */,
+				2719CBF8433B3C805CF9CA24 /* BackendClient.swift in Sources */,
+				2229DE12165D8288BE3A9C93 /* BackendManager.swift in Sources */,
+				8D4EF31F8B55FBB222EC03FE /* ConversationView.swift in Sources */,
+				3502D3234561E8F256B9EAD5 /* JarvisApp.swift in Sources */,
+				833A9F4353B1967E185986F7 /* JarvisViewModel.swift in Sources */,
+				6658EF9D2B9D77E50766F813 /* MainView.swift in Sources */,
+				B3880F6060735AA297D2CF74 /* MicrophoneManager.swift in Sources */,
+				21111DFD651BF7DE4678D5FF /* ModelManager.swift in Sources */,
+				4E0A21A722FB728ADD879425 /* Models.swift in Sources */,
+				D0CE6D732A01DA03F8F198AB /* OrbView.swift in Sources */,
+				BF081A3591467809EC839078 /* SettingsView.swift in Sources */,
+				FF110DCEB88EACF50970C78E /* ToolProtocol.swift in Sources */,
+				1C626597AD3F45A52FA5E6B9 /* WaveformView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C533AFEDAD01B9DA1BF74567 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		AA26A3BA88789C6A170DB39B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = CE37E25EDF3A9F2A5BDA9298 /* JarvisApp */;
+			targetProxy = A8D27FD14C2CAA2E6F601432 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		09CA5CFC2A58CE130E4CF8AD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGNING_ALLOWED = YES;
+				CODE_SIGNING_REQUIRED = YES;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Jarvis;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_NSAppTransportSecurity = "{}";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "O Jarvis precisa do microfone para ouvir os seus comandos.";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.local.jarvis;
+				PRODUCT_NAME = Jarvis;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.9;
+			};
+			name = Release;
+		};
+		6B647F87BE13951A030879F5 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		70DF7059D39A165EB92211CF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_IDENTITY = "-";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.local.jarvis.tests;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.9;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/JarvisApp.app/Contents/MacOS/JarvisApp";
+			};
+			name = Debug;
+		};
+		8AB5F4DB42104D611E49ECC8 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_IDENTITY = "-";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.local.jarvis.tests;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.9;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/JarvisApp.app/Contents/MacOS/JarvisApp";
+			};
+			name = Release;
+		};
+		B18E79404590D18382DEB0FC /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		B5955FF2DEE7496AB605E18D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGNING_ALLOWED = YES;
+				CODE_SIGNING_REQUIRED = YES;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Jarvis;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_NSAppTransportSecurity = "{}";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "O Jarvis precisa do microfone para ouvir os seus comandos.";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.local.jarvis;
+				PRODUCT_NAME = Jarvis;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.9;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		2F7FC497B524ADA3BE088E6B /* Build configuration list for PBXNativeTarget "JarvisAppTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				70DF7059D39A165EB92211CF /* Debug */,
+				8AB5F4DB42104D611E49ECC8 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		B4B55E25995F926AA11FA6BD /* Build configuration list for PBXProject "JarvisApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6B647F87BE13951A030879F5 /* Debug */,
+				B18E79404590D18382DEB0FC /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		F0EBA81C0F5F79EA2F31CADD /* Build configuration list for PBXNativeTarget "JarvisApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B5955FF2DEE7496AB605E18D /* Debug */,
+				09CA5CFC2A58CE130E4CF8AD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 7DB0DAB8DB97C1CD818BB48F /* Project object */;
+}

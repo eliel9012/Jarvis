@@ -1,0 +1,52 @@
+name: JarvisApp
+options:
+  bundleIdPrefix: com.local
+  deploymentTarget:
+    macOS: "14.0"
+  xcodeVersion: "26.6"
+  createIntermediateGroups: true
+targets:
+  JarvisApp:
+    type: application
+    platform: macOS
+    sources:
+      - JarvisApp
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.local.jarvis
+        PRODUCT_NAME: Jarvis
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Jarvis
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.productivity
+        INFOPLIST_KEY_NSMicrophoneUsageDescription: "O Jarvis precisa do microfone para ouvir os seus comandos."
+        INFOPLIST_KEY_NSAppTransportSecurity: "{}"
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGNING_REQUIRED: YES
+        CODE_SIGNING_ALLOWED: YES
+        ENABLE_HARDENED_RUNTIME: NO
+        SWIFT_VERSION: "5.9"
+        MACOSX_DEPLOYMENT_TARGET: "14.0"
+  JarvisAppTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - JarvisAppTests
+    dependencies:
+      - target: JarvisApp
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.local.jarvis.tests
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGN_IDENTITY: "-"
+        SWIFT_VERSION: "5.9"
+schemes:
+  JarvisApp:
+    build:
+      targets:
+        JarvisApp: all
+    run:
+      config: Debug
+    test:
+      targets:
+        - JarvisAppTests

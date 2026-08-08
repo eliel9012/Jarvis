@@ -63,3 +63,5 @@ secrets*
 # FastAPI / uvicorn
 *.pid
 *.sock
+Build_output/
+*.dSYM/
