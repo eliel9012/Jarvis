@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		0A1B2C3D4E5F60718293A4B5 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1B2C3D4E5F60718293A4B5C6 /* Assets.xcassets */; };
 		70F78E96F166B7B459F9E398 /* WhisperKit in Frameworks */ = {isa = PBXBuildFile; productRef = A854DF81B2BC729CD773FFEE /* WhisperKit */; };
+		6A42B83CEDF2C8913723124F /* WhisperTranscriber.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DDE981CCEABB20BC9C014FC /* WhisperTranscriber.swift */; };
 		1F5FBD647FD2183E7A7E8C4C /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = 70C93D08402A7493E6BFCF5D /* MLXLLM */; };
 		06D7984FF52302219D7D3F75 /* MLXLMCommon in Frameworks */ = {isa = PBXBuildFile; productRef = 33872749FEA61D860D7AD73F /* MLXLMCommon */; };
 		1AD0E17AD4526DFCBFF08356 /* AudioPlayerManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98CC8BF682C07E2DCDEEA5CB /* AudioPlayerManager.swift */; };
@@ -44,6 +45,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		1DDE981CCEABB20BC9C014FC /* WhisperTranscriber.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhisperTranscriber.swift; sourceTree = "<group>"; };
 		0D8B87E26D6D396AF6B887C6 /* WaveformView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaveformView.swift; sourceTree = "<group>"; };
 		1B2C3D4E5F60718293A4B5C6 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		1E3C8BC10120DA2D701B447F /* ModelParsingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelParsingTests.swift; sourceTree = "<group>"; };
@@ -155,6 +157,7 @@
 				4DDCD02E4DD9875163486737 /* LaunchAtLogin.swift */,
 				AC8DEBD7084D7C5A994CEB3A /* MicrophoneManager.swift */,
 				7FE40D2D57908B12E4E11D81 /* ModelManager.swift */,
+				1DDE981CCEABB20BC9C014FC /* WhisperTranscriber.swift */,
 			);
 			path = Managers;
 			sourceTree = "<group>";
@@ -282,6 +285,7 @@
 				BF081A3591467809EC839078 /* SettingsView.swift in Sources */,
 				FF110DCEB88EACF50970C78E /* ToolProtocol.swift in Sources */,
 				1C626597AD3F45A52FA5E6B9 /* WaveformView.swift in Sources */,
+				6A42B83CEDF2C8913723124F /* WhisperTranscriber.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -19,6 +19,7 @@ final class JarvisViewModel: ObservableObject {
     let models = ModelManager()
     let historyStore = HistoryStore()
     let client = BackendClient.shared
+    let transcriber = WhisperTranscriber()
 
     private var history: [ChatMessage] = []
     private var cancellables = Set<AnyCancellable>()
@@ -29,6 +30,7 @@ final class JarvisViewModel: ObservableObject {
             .assign(to: \.backendStatus, on: self)
             .store(in: &cancellables)
         backendManager.startMonitoring()
+        transcriber.preload()
         Task {
             if let config = try? JSONSerialization.jsonObject(
                 with: Data(contentsOf: configURL)
@@ -77,32 +79,19 @@ final class JarvisViewModel: ObservableObject {
 
     // MARK: - Pipeline de voz
 
+    /// Transcrição roda local (WhisperKit) — só o texto final vai pro backend, sem upload de áudio.
     private func processCapture() {
         guard let url = microphone.stopRecording() else { return }
         Task {
             state = .transcribing
             do {
-                let result = try await client.conversation(
-                    file: url,
-                    mode: settings.llmMode.rawValue,
-                    speed: settings.ttsSpeed
-                )
-                let transcript = result.transcript.trimmingCharacters(in: .whitespacesAndNewlines)
+                let language = settings.language == "auto" ? nil : settings.language
+                let transcript = try await transcriber.transcribe(audioPath: url.path, language: language)
                 guard !transcript.isEmpty else {
                     state = .idle
                     return
                 }
-                appendMessage(role: "user", content: transcript)
-                let answer = result.response
-                appendMessage(role: "assistant", content: answer)
-                state = .speaking
-                if settings.speakResponses {
-                    let audioURL = URL(fileURLWithPath: result.audio_path)
-                    audioPlayer.play(url: audioURL)
-                }
-                if state == .speaking {
-                    state = .idle
-                }
+                await respond(to: transcript)
             } catch {
                 state = .error(error.localizedDescription)
             }
@@ -118,31 +107,36 @@ final class JarvisViewModel: ObservableObject {
             state = .error("Backend offline")
             return
         }
-        appendMessage(role: "user", content: trimmed)
         Task {
-            state = .thinking
-            do {
-                let result = try await client.chat(
-                    messages: history + [ChatMessage(role: "user", content: trimmed)],
-                    maxTokens: settings.maxTokens
+            await respond(to: trimmed)
+        }
+    }
+
+    /// LLM (`/chat`) + TTS (`/tts`) — compartilhado entre voz e texto.
+    private func respond(to userText: String) async {
+        appendMessage(role: "user", content: userText)
+        state = .thinking
+        do {
+            let result = try await client.chat(
+                messages: history,
+                maxTokens: settings.maxTokens
+            )
+            let answer = result.content.isEmpty ? (result.reasoning ?? "") : result.content
+            appendMessage(role: "assistant", content: answer)
+            if settings.speakResponses {
+                state = .speaking
+                let tts = try await client.tts(
+                    text: answer,
+                    model: settings.ttsModelRaw == "fast" ? "mlx-community/fish-audio-s2-pro-8bit" : "mlx-community/fish-audio-s2-pro-bf16",
+                    speed: settings.ttsSpeed,
+                    refAudio: settings.refVoiceEnabled && !settings.refAudioPath.isEmpty ? settings.refAudioPath : nil,
+                    refText: settings.refVoiceEnabled && !settings.refTranscript.isEmpty ? settings.refTranscript : nil
                 )
-                let answer = result.content.isEmpty ? (result.reasoning ?? "") : result.content
-                appendMessage(role: "assistant", content: answer)
-                if settings.speakResponses {
-                    state = .speaking
-                    let tts = try await client.tts(
-                        text: answer,
-                        model: settings.ttsModelRaw == "fast" ? "mlx-community/fish-audio-s2-pro-8bit" : "mlx-community/fish-audio-s2-pro-bf16",
-                        speed: settings.ttsSpeed,
-                        refAudio: settings.refVoiceEnabled && !settings.refAudioPath.isEmpty ? settings.refAudioPath : nil,
-                        refText: settings.refVoiceEnabled && !settings.refTranscript.isEmpty ? settings.refTranscript : nil
-                    )
-                    audioPlayer.play(url: URL(fileURLWithPath: tts.audio_path))
-                }
-                if state != .idle { state = .idle }
-            } catch {
-                state = .error(error.localizedDescription)
+                audioPlayer.play(url: URL(fileURLWithPath: tts.audio_path))
             }
+            if state != .idle { state = .idle }
+        } catch {
+            state = .error(error.localizedDescription)
         }
     }
 
