@@ -3,13 +3,27 @@ import SwiftUI
 
 @main
 struct JarvisApp: App {
-    @StateObject private var viewModel = JarvisViewModel()
+    @StateObject private var viewModel: JarvisViewModel
+    @StateObject private var floatingController: FloatingOrbController
     @StateObject private var hotkey = HotkeyManager()
+
+    init() {
+        let viewModel = JarvisViewModel()
+        _viewModel = StateObject(wrappedValue: viewModel)
+        _floatingController = StateObject(
+            wrappedValue: FloatingOrbController(viewModel: viewModel)
+        )
+    }
 
     var body: some Scene {
         WindowGroup {
-            MainView(viewModel: viewModel)
-                .frame(minWidth: 520, minHeight: 640)
+            MainView(viewModel: viewModel, floatingController: floatingController)
+                .frame(minWidth: 900, minHeight: 700)
+                .background {
+                    WindowAttachment { window in
+                        floatingController.attachMainWindow(window)
+                    }
+                }
                 .onAppear {
                     hotkey.onPushToTalk = {
                         if viewModel.settings.pushToTalk {
@@ -25,10 +39,14 @@ struct JarvisApp: App {
                 }
         }
         .windowStyle(.hiddenTitleBar)
+        .defaultSize(width: 1180, height: 820)
 
         MenuBarExtra {
             Button("Abrir Jarvis") {
-                NSApp.activate(ignoringOtherApps: true)
+                floatingController.restoreMainWindow()
+            }
+            Button(floatingController.isFloating ? "Fechar orbe flutuante" : "Mostrar orbe flutuante") {
+                floatingController.toggle()
             }
             Button("Começar a Ouvir") {
                 viewModel.startListening()

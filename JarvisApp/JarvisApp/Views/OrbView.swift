@@ -4,8 +4,14 @@ import SwiftUI
 /// Orbe central abstrato, com uma assinatura de movimento para cada etapa do pipeline.
 struct OrbView: View {
     let state: JarvisState
+    let size: CGFloat
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    init(state: JarvisState, size: CGFloat = 390) {
+        self.state = state
+        self.size = size
+    }
 
     private var isStaticState: Bool {
         if case .error = state { return true }
@@ -18,8 +24,10 @@ struct OrbView: View {
                 state: state,
                 time: reduceMotion ? 0 : timeline.date.timeIntervalSinceReferenceDate
             )
+            .frame(width: 260, height: 260)
+            .scaleEffect(size / 260)
         }
-        .frame(width: 260, height: 260)
+        .frame(width: size, height: size)
         .accessibilityHidden(true)
     }
 }
@@ -30,12 +38,12 @@ private struct OrbComposition: View {
 
     private var color: Color {
         switch state {
-        case .idle: return .blue
-        case .listening: return .green
-        case .transcribing: return .orange
-        case .thinking: return .purple
-        case .synthesizing: return .indigo
-        case .speaking: return .cyan
+        case .idle: return JarvisTheme.cyan.opacity(0.72)
+        case .listening: return JarvisTheme.cyan
+        case .transcribing: return JarvisTheme.cyanBright
+        case .thinking: return Color(red: 0.24, green: 0.56, blue: 1.0)
+        case .synthesizing: return JarvisTheme.cyan
+        case .speaking: return JarvisTheme.cyanBright
         case .error: return .red
         }
     }
@@ -61,20 +69,66 @@ private struct OrbComposition: View {
             Circle()
                 .fill(
                     RadialGradient(
-                        colors: [color.opacity(0.42), color.opacity(0.12), .clear],
+                        colors: [color.opacity(0.52), color.opacity(0.14), .clear],
                         center: .center,
                         startRadius: 12,
                         endRadius: 126
                     )
                 )
                 .blur(radius: 16)
-                .scaleEffect(0.93 + breath * 0.12)
+                .scaleEffect((0.93 + breath * 0.12) * 0.8)
+
+            ForEach(0..<4, id: \.self) { index in
+                Circle()
+                    .stroke(color.opacity(0.16 - Double(index) * 0.025), lineWidth: index == 0 ? 1.1 : 0.65)
+                    .frame(
+                        width: CGFloat(238 - index * 20),
+                        height: CGFloat(238 - index * 20)
+                    )
+                    .scaleEffect(0.8)
+            }
+
+            ForEach(0..<6, id: \.self) { index in
+                RoundedRectangle(cornerRadius: 78)
+                    .stroke(
+                        LinearGradient(
+                            colors: [.clear, color.opacity(0.74), .clear],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        ),
+                        lineWidth: 0.85
+                    )
+                    .frame(width: 74, height: 168)
+                    .rotationEffect(.degrees(Double(index) * 30 + sin(time * 0.42) * 4))
+                    .scaleEffect(0.8)
+                    .blur(radius: 0.25)
+            }
+
+            ForEach(0..<3, id: \.self) { index in
+                Circle()
+                    .trim(
+                        from: 0.06 + Double(index) * 0.16,
+                        to: 0.31 + Double(index) * 0.17
+                    )
+                    .stroke(
+                        AngularGradient(
+                            colors: [.clear, color.opacity(0.96), .clear],
+                            center: .center
+                        ),
+                        style: StrokeStyle(lineWidth: index == 1 ? 2.1 : 1.2, lineCap: .round)
+                    )
+                    .frame(width: CGFloat(214 - index * 28), height: CGFloat(214 - index * 28))
+                    .rotationEffect(.degrees(time * Double(index.isMultiple(of: 2) ? 18 : -25) + Double(index * 92)))
+                    .scaleEffect(0.8)
+            }
 
             Circle()
                 .stroke(color.opacity(0.12 + breath * 0.1), lineWidth: 1)
                 .frame(width: 188, height: 188)
+                .scaleEffect(0.8)
 
             stateMotion
+                .scaleEffect(0.8)
 
             Circle()
                 .fill(
@@ -97,8 +151,11 @@ private struct OrbComposition: View {
                         .frame(width: 44, height: 44)
                         .offset(x: 5, y: 5)
                 }
-                .frame(width: 72, height: 72)
-                .shadow(color: color.opacity(0.62), radius: 22 + breath * 9)
+                .frame(width: 70, height: 70)
+                .overlay {
+                    Circle().stroke(.white.opacity(0.22), lineWidth: 0.7)
+                }
+                .shadow(color: color.opacity(0.76), radius: 25 + breath * 10)
                 .scaleEffect(0.95 + breath * 0.08)
 
             coreActivity
@@ -185,8 +242,8 @@ private struct OrbComposition: View {
     private var coreActivity: some View {
         switch state {
         case .listening:
-            Image(systemName: "mic.fill")
-                .font(.system(size: 22, weight: .medium))
+            Image(systemName: "mic")
+                .font(.system(size: 28, weight: .medium))
                 .foregroundStyle(.white.opacity(0.92))
 
         case .transcribing:
@@ -269,12 +326,12 @@ struct LaunchSequenceView: View {
 
     var body: some View {
         ZStack {
-            Color(nsColor: .windowBackgroundColor)
+            JarvisBackground()
 
             Circle()
                 .fill(
                     RadialGradient(
-                        colors: [Color.blue.opacity(0.2), Color.blue.opacity(0.05), .clear],
+                        colors: [JarvisTheme.cyan.opacity(0.24), JarvisTheme.cyan.opacity(0.05), .clear],
                         center: .center,
                         startRadius: 10,
                         endRadius: 170
@@ -289,7 +346,7 @@ struct LaunchSequenceView: View {
                 ZStack {
                     ForEach(0..<3, id: \.self) { index in
                         Circle()
-                            .stroke(Color.blue.opacity(0.23 - Double(index) * 0.05), lineWidth: 1)
+                            .stroke(JarvisTheme.cyan.opacity(0.28 - Double(index) * 0.05), lineWidth: 1)
                             .frame(width: CGFloat(108 + index * 28), height: CGFloat(108 + index * 28))
                             .scaleEffect(stage >= 1 ? 1 : 0.35)
                             .opacity(stage >= 1 ? 1 : 0)
@@ -303,13 +360,13 @@ struct LaunchSequenceView: View {
                     Circle()
                         .fill(
                             LinearGradient(
-                                colors: [Color.blue.opacity(0.72), .blue],
+                                colors: [JarvisTheme.cyanBright.opacity(0.78), JarvisTheme.cyan],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
                         )
                         .frame(width: 72, height: 72)
-                        .shadow(color: .blue.opacity(0.48), radius: 28)
+                        .shadow(color: JarvisTheme.cyan.opacity(0.58), radius: 28)
                         .scaleEffect(stage >= 1 ? 1 : 0.2)
                         .opacity(stage >= 1 ? 1 : 0)
                 }

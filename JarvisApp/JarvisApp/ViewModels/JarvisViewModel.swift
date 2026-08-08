@@ -39,6 +39,12 @@ final class JarvisViewModel: ObservableObject {
     private var responseTask: Task<Void, Never>?
 
     func start() {
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--ui-preview") {
+            loadUIPreview()
+            return
+        }
+        #endif
         backendManager.$status
             .receive(on: DispatchQueue.main)
             .assign(to: \.backendStatus, on: self)
@@ -65,6 +71,21 @@ final class JarvisViewModel: ObservableObject {
             }
         }
     }
+
+    #if DEBUG
+    /// Estado determinístico usado apenas nas capturas de validação visual.
+    private func loadUIPreview() {
+        backendStatus = .online
+        state = .listening
+        let previewMessages = [
+            ChatMessage(role: "user", content: "Qual é a minha próxima reunião?", source: .stt),
+            ChatMessage(role: "assistant", content: "Sua próxima reunião é às 14h30, com a equipe de produto.", source: .assistant),
+            ChatMessage(role: "user", content: "Prepare um resumo antes.", source: .typed)
+        ]
+        messages = previewMessages
+        history = previewMessages
+    }
+    #endif
 
     private var configURL: URL {
         let base = NSString(string: "~/Developer/Jarvis").expandingTildeInPath

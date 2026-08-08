@@ -112,6 +112,7 @@ ociosa — não é obrigatório abrir o Terminal.
 - **LLM**: Qwen 3.5 9B local, com raciocínio desativado para reduzir a latência.
 - **Voz**: Kokoro 82M, voz masculina Alex (`pm_alex`) em português brasileiro.
 - **Histórico**: mensagens digitadas, transcrições STT e respostas são persistidas localmente com sua origem.
+- **Orbe flutuante**: clique no ícone de sobreposição no canto superior direito para ocultar a janela e manter apenas o Jarvis sempre acima dos outros apps. O botão pequeno reabre a janela completa.
 - **Áudio temporário**: capturas do microfone são apagadas após a transcrição. A fala em streaming não cria WAV; o endpoint legado apaga seus órfãos automaticamente.
 
 ### Movimento e feedback visual
@@ -119,6 +120,8 @@ ociosa — não é obrigatório abrir o Terminal.
 - A abertura usa uma sequência nativa SwiftUI de anéis, orbe e letras escalonadas.
 - O orbe diferencia visualmente `Ouvindo`, `Transcrevendo`, `Pensando`,
   `Gerando voz` e `Falando`, acompanhando as etapas reais do pipeline.
+- A janela principal segue a interface escura de referência: status local e
+  modelos no cabeçalho, waveform ampla, conversa compacta e composer único.
 - As curvas, timelines e entradas em stagger foram adaptadas das técnicas do
   [GSAP](https://gsap.com/), sem incorporar JavaScript ou dependências web.
 - A preferência **Reduzir Movimento** do macOS simplifica a abertura e pausa

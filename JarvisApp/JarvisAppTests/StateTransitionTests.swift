@@ -16,6 +16,8 @@ final class StateTransitionTests: XCTestCase {
         XCTAssertEqual(JarvisState.synthesizing.label, "Gerando voz...")
         XCTAssertEqual(JarvisState.speaking.label, "Falando...")
         XCTAssertTrue(JarvisState.error("boom").label.contains("boom"))
+        XCTAssertEqual(JarvisState.listening.detail, "Fale naturalmente")
+        XCTAssertEqual(JarvisState.thinking.detail, "Criando uma resposta")
     }
 
     func testHistoryTrimming() {

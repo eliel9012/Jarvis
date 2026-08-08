@@ -1,14 +1,20 @@
 import SwiftUI
 
-/// Tela principal do Jarvis.
+/// Experiência principal do Jarvis, baseada na referência visual escolhida.
 struct MainView: View {
     @ObservedObject var viewModel: JarvisViewModel
+    @ObservedObject var floatingController: FloatingOrbController
+
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.openSettings) private var openSettings
     @State private var textInput = ""
     @State private var isShowingLaunch = true
+    @State private var isShowingHistory = false
 
     var body: some View {
         ZStack {
+            JarvisBackground()
+
             mainContent
                 .opacity(isShowingLaunch ? 0 : 1)
                 .scaleEffect(isShowingLaunch && !reduceMotion ? 0.985 : 1)
@@ -23,8 +29,11 @@ struct MainView: View {
                 .zIndex(10)
             }
         }
-        .frame(minWidth: 520, minHeight: 640)
-        .background(Color(nsColor: .windowBackgroundColor))
+        .frame(minWidth: 900, minHeight: 700)
+        .preferredColorScheme(.dark)
+        .sheet(isPresented: $isShowingHistory) {
+            HistoryPanelView(historyStore: viewModel.historyStore)
+        }
         .task {
             if viewModel.messages.isEmpty {
                 viewModel.start()
@@ -34,106 +43,239 @@ struct MainView: View {
 
     private var mainContent: some View {
         VStack(spacing: 0) {
-            HStack {
-                Text("JARVIS")
-                    .font(.system(size: 22, weight: .bold))
-                Spacer()
-                HStack(spacing: 6) {
-                    Circle().fill(viewModel.backendStatus.color)
-                        .frame(width: 8, height: 8)
-                    Text(viewModel.backendStatus == .online ? "LOCAL" : viewModel.backendStatus.label.uppercased())
-                        .font(.caption.bold())
-                        .foregroundStyle(viewModel.backendStatus.color)
+            header
+
+            GeometryReader { geometry in
+                let orbSize = min(410, max(285, geometry.size.height * 0.49))
+                VStack(spacing: 0) {
+                    hero(orbSize: orbSize)
+                        .frame(maxHeight: .infinity)
+
+                    ConversationView(messages: viewModel.messages)
+                        .frame(height: min(160, max(125, geometry.size.height * 0.20)))
+                        .padding(.horizontal, 78)
+
+                    composer
+                        .padding(.horizontal, 78)
+
+                    Label("Processamento local", systemImage: "lock.fill")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(JarvisTheme.secondaryText)
+                        .padding(.vertical, 14)
                 }
             }
-            .padding(.horizontal, 24)
-            .padding(.top, 20)
+        }
+    }
 
-            Spacer()
+    private var header: some View {
+        HStack(spacing: 0) {
+            Text("Jarvis")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(JarvisTheme.primaryText)
+                .padding(.leading, 74)
+                .frame(width: 220, alignment: .leading)
 
-            VStack(spacing: 16) {
-                OrbView(state: viewModel.state)
-                ZStack {
-                    Text(viewModel.state.label)
-                        .id(viewModel.state.label)
-                        .font(.title2.weight(.medium))
-                        .foregroundStyle(.secondary)
-                        .transition(
-                            reduceMotion
-                                ? .opacity
-                                : .asymmetric(
-                                    insertion: .offset(y: 8).combined(with: .opacity),
-                                    removal: .offset(y: -8).combined(with: .opacity)
-                                )
-                        )
+            Rectangle()
+                .fill(JarvisTheme.border.opacity(0.22))
+                .frame(width: 1, height: 36)
+
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 7) {
+                    Circle()
+                        .fill(viewModel.backendStatus.color)
+                        .frame(width: 9, height: 9)
+                    Text(viewModel.backendStatus == .online ? "Local · online" : "Local · \(viewModel.backendStatus.label.lowercased())")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(JarvisTheme.primaryText)
                 }
-                .animation(.timingCurve(0.16, 1, 0.3, 1, duration: 0.42), value: viewModel.state.label)
-
-                if viewModel.state == .listening {
-                    WaveformView(levels: viewModel.microphone.levels)
-                }
+                Text(viewModel.footerModels.replacingOccurrences(of: " pt-BR", with: ""))
+                    .font(.system(size: 12))
+                    .foregroundStyle(JarvisTheme.secondaryText)
             }
+            .padding(.leading, 22)
 
             Spacer()
-
-            ConversationView(messages: viewModel.messages)
-                .frame(maxHeight: 260)
-                .opacity(viewModel.messages.isEmpty ? 0.4 : 1)
-
-            Divider().padding(.horizontal, 24)
 
             HStack(spacing: 12) {
-                Button {
-                    if viewModel.state == .listening {
-                        viewModel.stopListening()
-                    } else {
-                        viewModel.startListening()
-                    }
-                } label: {
-                    Label(
-                        viewModel.state == .listening ? "Parar" : "Microfone",
-                        systemImage: viewModel.state == .listening ? "stop.circle.fill" : "mic.fill"
-                    )
+                JarvisIconButton(systemName: "clock.arrow.circlepath", help: "Histórico") {
+                    isShowingHistory = true
                 }
-                .buttonStyle(.borderedProminent)
-                .disabled(viewModel.state != .listening && !viewModel.canStartInteraction)
-
-                if viewModel.canInterrupt {
-                    Button("Interromper", role: .cancel) {
-                        viewModel.stopEverything()
-                    }
-                    .buttonStyle(.bordered)
+                JarvisIconButton(systemName: "gearshape", help: "Ajustes") {
+                    openSettings()
                 }
-
-                Spacer()
-
-                Button {
-                    viewModel.clearConversation()
-                } label: {
-                    Image(systemName: "trash")
+                JarvisIconButton(systemName: "pip.enter", help: "Modo orbe flutuante") {
+                    floatingController.showFloatingOrb()
                 }
-                .buttonStyle(.borderless)
-                .disabled(viewModel.messages.isEmpty)
             }
-            .padding(.horizontal, 24)
-            .padding(.bottom, 10)
-
-            HStack {
-                TextField("Pergunte ao Jarvis...", text: $textInput)
-                    .textFieldStyle(.roundedBorder)
-                    .disabled(!viewModel.canStartInteraction)
-                    .onSubmit {
-                        viewModel.sendText(textInput)
-                        textInput = ""
-                    }
-            }
-            .padding(.horizontal, 24)
-            .padding(.bottom, 12)
-
-            Text(viewModel.footerModels)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-                .padding(.bottom, 8)
+            .padding(.trailing, 22)
         }
+        .frame(height: 66)
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(JarvisTheme.border.opacity(0.12))
+                .frame(height: 1)
+        }
+    }
+
+    private func hero(orbSize: CGFloat) -> some View {
+        VStack(spacing: 6) {
+            ZStack {
+                WaveformView(
+                    levels: viewModel.microphone.levels,
+                    isActive: viewModel.state == .listening
+                )
+                .frame(maxWidth: 980)
+
+                OrbView(state: viewModel.state, size: orbSize * 1.5)
+            }
+            .frame(height: orbSize * 0.91)
+
+            Text(viewModel.state.label)
+                .id(viewModel.state.label)
+                .font(.system(size: 30, weight: .medium))
+                .foregroundStyle(JarvisTheme.primaryText)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+
+            Text(viewModel.state.detail)
+                .font(.system(size: 16))
+                .foregroundStyle(JarvisTheme.secondaryText)
+
+            ActivityTicks(state: viewModel.state)
+                .padding(.top, 6)
+        }
+        .animation(.timingCurve(0.16, 1, 0.3, 1, duration: 0.42), value: viewModel.state.label)
+    }
+
+    private var composer: some View {
+        HStack(spacing: 18) {
+            Image(systemName: "sparkles")
+                .font(.system(size: 22, weight: .medium))
+                .foregroundStyle(JarvisTheme.cyan)
+                .frame(width: 48, height: 48)
+                .background(JarvisTheme.backgroundRaised, in: RoundedRectangle(cornerRadius: 12))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(JarvisTheme.border.opacity(0.45), lineWidth: 1)
+                }
+
+            TextField("Pergunte ao Jarvis...", text: $textInput)
+                .textFieldStyle(.plain)
+                .font(.system(size: 17))
+                .foregroundStyle(JarvisTheme.primaryText)
+                .disabled(!viewModel.canStartInteraction)
+                .onSubmit(sendText)
+
+            Text("⌥ Espaço para falar")
+                .font(.system(size: 13))
+                .foregroundStyle(JarvisTheme.secondaryText)
+
+            Button(action: toggleListening) {
+                Image(systemName: viewModel.state == .listening ? "stop.fill" : "mic.fill")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 50, height: 50)
+                    .background(
+                        viewModel.state == .listening
+                            ? Color.white.opacity(0.11)
+                            : JarvisTheme.cyan.opacity(0.20),
+                        in: Circle()
+                    )
+                    .overlay { Circle().stroke(JarvisTheme.border.opacity(0.58), lineWidth: 1) }
+            }
+            .buttonStyle(.plain)
+            .disabled(viewModel.state != .listening && !viewModel.canStartInteraction)
+        }
+        .padding(.horizontal, 16)
+        .frame(height: 72)
+        .background(JarvisTheme.panel.opacity(0.56), in: RoundedRectangle(cornerRadius: 17))
+        .overlay {
+            RoundedRectangle(cornerRadius: 17)
+                .stroke(JarvisTheme.border.opacity(0.44), lineWidth: 1)
+        }
+        .shadow(color: .black.opacity(0.20), radius: 20, y: 8)
+    }
+
+    private func sendText() {
+        viewModel.sendText(textInput)
+        textInput = ""
+    }
+
+    private func toggleListening() {
+        if viewModel.state == .listening {
+            viewModel.stopListening()
+        } else {
+            viewModel.startListening()
+        }
+    }
+}
+
+private struct ActivityTicks: View {
+    let state: JarvisState
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1 / 24)) { timeline in
+            let time = timeline.date.timeIntervalSinceReferenceDate
+            HStack(alignment: .center, spacing: 7) {
+                ForEach(0..<13, id: \.self) { index in
+                    let phase = sin(time * 4.5 + Double(index) * 0.78)
+                    Capsule()
+                        .fill(JarvisTheme.cyan.opacity(state == .idle ? 0.36 : 0.85))
+                        .frame(width: 3, height: state == .idle ? 4 : 5 + abs(phase) * 15)
+                }
+            }
+        }
+        .frame(height: 24)
+        .accessibilityHidden(true)
+    }
+}
+
+private struct HistoryPanelView: View {
+    let historyStore: HistoryStore
+    @Environment(\.dismiss) private var dismiss
+    @State private var conversations: [ConversationRecord] = []
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if conversations.isEmpty {
+                    ContentUnavailableView(
+                        "Sem histórico",
+                        systemImage: "clock.arrow.circlepath",
+                        description: Text("Suas conversas locais aparecerão aqui.")
+                    )
+                } else {
+                    List(conversations) { conversation in
+                        DisclosureGroup {
+                            ForEach(historyStore.messages(for: conversation)) { message in
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(message.role == "user" ? "Você" : "Jarvis")
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(message.role == "user" ? .secondary : JarvisTheme.cyan)
+                                    Text(message.text)
+                                        .textSelection(.enabled)
+                                }
+                                .padding(.vertical, 4)
+                            }
+                        } label: {
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(conversation.title)
+                                Text(conversation.createdAt, format: .dateTime.day().month().hour().minute())
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                    .listStyle(.inset)
+                }
+            }
+            .navigationTitle("Histórico")
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Fechar") { dismiss() }
+                }
+            }
+        }
+        .frame(width: 620, height: 520)
+        .task { conversations = historyStore.allConversations() }
     }
 }

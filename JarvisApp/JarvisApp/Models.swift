@@ -21,6 +21,18 @@ enum JarvisState: Equatable {
         case .error(let message): return "Erro: \(message)"
         }
     }
+
+    var detail: String {
+        switch self {
+        case .idle: return "Pronto quando você estiver"
+        case .listening: return "Fale naturalmente"
+        case .transcribing: return "Convertendo sua voz em texto"
+        case .thinking: return "Criando uma resposta"
+        case .synthesizing: return "Preparando a voz"
+        case .speaking: return "Respondendo"
+        case .error: return "Tente novamente"
+        }
+    }
 }
 
 enum MessageSource: String, Codable {
