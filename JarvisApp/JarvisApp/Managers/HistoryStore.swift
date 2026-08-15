@@ -70,6 +70,9 @@ final class HistoryStore {
             current = conv
         }
         guard let current else { return }
+        if current.messages.isEmpty, role == "user" {
+            current.title = Self.title(from: text)
+        }
         let msg = MessageRecord(role: role, text: text, source: source.rawValue)
         context.insert(msg)
         msg.conversation = current
@@ -90,6 +93,19 @@ final class HistoryStore {
 
     func startNewConversation() {
         current = nil
+    }
+
+    /// Torna `conversation` a conversa ativa: próximos `append` continuam nela em vez de criar uma nova.
+    func resume(_ conversation: ConversationRecord) {
+        current = conversation
+    }
+
+    private static func title(from text: String) -> String {
+        let cleaned = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let limit = 48
+        guard cleaned.count > limit else { return cleaned }
+        let cut = cleaned.index(cleaned.startIndex, offsetBy: limit)
+        return String(cleaned[..<cut]).trimmingCharacters(in: .whitespacesAndNewlines) + "…"
     }
 
     func deleteAll() {

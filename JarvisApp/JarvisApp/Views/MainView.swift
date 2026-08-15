@@ -32,7 +32,10 @@ struct MainView: View {
         .frame(minWidth: 900, minHeight: 700)
         .preferredColorScheme(.dark)
         .sheet(isPresented: $isShowingHistory) {
-            HistoryPanelView(historyStore: viewModel.historyStore)
+            HistoryPanelView(historyStore: viewModel.historyStore) { conversation in
+                viewModel.resumeConversation(conversation)
+                isShowingHistory = false
+            }
         }
         .task {
             if viewModel.messages.isEmpty {
@@ -234,6 +237,7 @@ private struct ActivityTicks: View {
 
 private struct HistoryPanelView: View {
     let historyStore: HistoryStore
+    let onResume: (ConversationRecord) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var conversations: [ConversationRecord] = []
 
@@ -260,11 +264,18 @@ private struct HistoryPanelView: View {
                                 .padding(.vertical, 4)
                             }
                         } label: {
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(conversation.title)
-                                Text(conversation.createdAt, format: .dateTime.day().month().hour().minute())
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
+                            HStack(spacing: 12) {
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(conversation.title)
+                                        .lineLimit(1)
+                                    Text(conversation.createdAt, format: .dateTime.day().month().hour().minute())
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                                Button("Retomar") { onResume(conversation) }
+                                    .buttonStyle(.bordered)
+                                    .controlSize(.small)
                             }
                         }
                     }

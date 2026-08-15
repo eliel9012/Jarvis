@@ -60,10 +60,29 @@ extension BackendManager.Status {
 }
 
 enum ConversationHistory {
-    /// Mantém apenas as N mensagens mais recentes (rollover de contexto).
-    static func trimmed(_ history: [ChatMessage], maxCount: Int = 40) -> [ChatMessage] {
-        guard history.count > maxCount else { return history }
-        return Array(history.suffix(maxCount))
+    /// Espelha `llm.context_compaction_threshold` de Config/config.json — o limite real
+    /// de contexto usado pelo Qwen local, não uma contagem arbitrária de mensagens.
+    static let defaultTokenBudget = 28_000
+
+    static func estimateTokens(_ text: String) -> Int {
+        max(1, text.count / 4)
+    }
+
+    /// Mantém as mensagens mais recentes que cabem no orçamento de tokens do modelo,
+    /// permitindo retomar conversas antigas sem estourar o contexto.
+    static func trimmed(_ history: [ChatMessage], tokenBudget: Int = defaultTokenBudget) -> [ChatMessage] {
+        guard !history.isEmpty else { return history }
+        var total = 0
+        var kept: [ChatMessage] = []
+        for message in history.reversed() {
+            let cost = estimateTokens(message.content)
+            if !kept.isEmpty && total + cost > tokenBudget {
+                break
+            }
+            total += cost
+            kept.append(message)
+        }
+        return kept.reversed()
     }
 }
 

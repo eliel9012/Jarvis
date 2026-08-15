@@ -208,6 +208,26 @@ final class JarvisViewModel: ObservableObject {
         state = .idle
     }
 
+    /// Carrega uma conversa salva e a torna ativa: próximas trocas continuam nela.
+    func resumeConversation(_ conversation: ConversationRecord) {
+        responseTask?.cancel()
+        responseTask = nil
+        audioPlayer.stop()
+        let loaded = historyStore.messages(for: conversation).map { record in
+            ChatMessage(
+                id: record.id,
+                role: record.role,
+                content: record.text,
+                timestamp: record.timestamp,
+                source: MessageSource(rawValue: record.source) ?? .typed
+            )
+        }
+        messages = loaded
+        history = ConversationHistory.trimmed(loaded)
+        historyStore.resume(conversation)
+        state = .idle
+    }
+
     private func appendMessage(role: String, content: String, source: MessageSource) {
         let msg = ChatMessage(role: role, content: content, source: source)
         messages.append(msg)
