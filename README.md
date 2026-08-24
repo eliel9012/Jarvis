@@ -1,5 +1,8 @@
 # JARVIS
 
+
+[🇺🇸 English](README.en.md) · [🇧🇷 Português](README.md)
+
 Assistente pessoal nativo macOS — **100% local**. Ouve, transcreve, responde e fala, tudo neste Mac, sem nenhuma API externa.
 
 ```
